@@ -28,7 +28,7 @@ function varargout=prd2mat(prdfile,protype,plt)
 % R2020a Update 4 (9.8.0.1417392)
 %
 % Originally written by tschuh-at-princeton.edu, 10/06/2021
-% Last modified by tschuh-at-princeton.edu, 01/20/2022
+% Last modified by tschuh-at-princeton.edu, 02/03/2022
 
 % To do:
 % need to extract trip section from fname somehow
@@ -164,7 +164,7 @@ elseif protype == 'rtk'
         d.xyzunit = 'm';
         d.lat = dm.Var3;
         d.lon = dm.Var4;
-        d.latlonunit = 'deg';
+        d.lonlatunit = 'deg';
         d.utmeasting = utmx;
         d.utmnorthing = utmy;
         d.utmunit = 'm';

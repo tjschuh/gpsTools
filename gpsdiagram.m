@@ -111,4 +111,4 @@ else
 end
 
 % Print to PDF
-figdisp([],[],[],2)
+figdisp([],[],[],2,[],'epstopdf')

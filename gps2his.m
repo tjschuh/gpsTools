@@ -24,8 +24,8 @@ function gps2his(files,col)
 [~,fname,~] = fileparts(files{1});
 fname=sprintf('000X-%s.mat',suf(fname,'-'));
 
-defval('col',[0.466 0.674 0.188 ]);
-defval('col',[0.4 0.6667 0.8431]);
+%defval('col',[0.466 0.674 0.188 ]); % lime green --> RTK
+defval('col',[0.4 0.6667 0.8431]); % light blue --> PPP
 
 % keep rows where nsats > nthresh and pdop < pthres and pdop~=0
 nthresh = 4; pthresh = 15;
@@ -133,7 +133,7 @@ delete(yl([2 4 6]))
 moveh(ah([1 3 5]),.05)
 
 % It is smart enough to strip the extension
-figdisp([],pref(fname,'.'),[],2)
+figdisp([],pref(fname,'.'),'',2,[],'epstopdf')
 
 xver=0;
 if xver==1

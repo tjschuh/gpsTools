@@ -1,15 +1,14 @@
-function gps2his(files,col)
-% GPS2HIS(files,col)
+function gps2his(files,protype)
+% GPS2HIS(files,protype)
 %
 % Given Precise Point Position time series of four different units, computes
 % their pairwise distances, calculates a least-squares regression line and
-% produces histograms of residuals with quantile-quantile plots.
+% produces histograms of residuals (with quantile-quantile plots).
 %
 % INPUT:
 % 
 % files        cell with MAT-filename strings containing data structures
-% col          RGB triplet with bar color
-%
+% protype      type of prd file ('ppp' or 'rtk')
 %
 % EXAMPLE:
 %
@@ -17,15 +16,21 @@ function gps2his(files,col)
 % gps2his({'0001-F089.mat','0002-F089.mat','0003-F089.mat','0004-F089.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 12/01/202
-% Last modified by fjsimons-at-princeton.edu, 02/01/2022
 % Last modified by tschuh-at-princeton.edu, 02/03/2022
+% Last modified by fjsimons-at-princeton.edu, 02/06/2022
 
-% new output filename made from first, you'll save the full info
+% New output filename made from first, you'll save the full info
 [~,fname,~] = fileparts(files{1});
 fname=sprintf('000X-%s.mat',suf(fname,'-'));
 
-%defval('col',[0.466 0.674 0.188 ]); % lime green --> RTK
-defval('col',[0.4 0.6667 0.8431]); % light blue --> PPP
+switch protype
+ case 'ppp'
+  % light blue --> PPP
+  defval('col',[0.400 0.6667 0.8431])
+ case 'rtk'
+  % lime green --> RTK
+  defval('col',[0.466 0.6740 0.1880])
+end
 
 % keep rows where nsats > nthresh and pdop < pthres and pdop~=0
 nthresh = 4; pthresh = 15;
@@ -132,15 +137,12 @@ delete(yl([2 4 6]))
 
 moveh(ah([1 3 5]),.05)
 
-% It is smart enough to strip the extension
+% It is smart enough to strip the extension but we do oit anyway
 figdisp([],pref(fname,'.'),'',2,[],'epstopdf')
 
 xver=0;
 if xver==1
-  
-  % Not for now
-  
-  %close
+  % Not for now, we don't
 
   % plot qq plots for each dataset to measure how "normal" data is
   g=figure;
@@ -151,18 +153,17 @@ if xver==1
   cosmo2('GPS Pair 1-2',qq12)
 
   % finishing touches
-  tt=supertit(ah1([1 2]),sprintf('QQ Plots of Residuals vs Standard Normals (%s to %s)',datestr(d1.t(1)),datestr(d1.t(end))));
+  tt=supertit(ah1([1 2]),sprintf('QQ Plots of Residuals vs Standard Normals (%s to %s)',...
+				 datestr(d1.t(1)),datestr(d1.t(end))));
   movev(tt,0.3)
 
-%figdisp(sprintf('qqplot-%s',fname),[],'',2,[],'epstopdf')
-
-%close
+  %figdisp(sprintf('qqplot-%s',fname),[],'',2,[],'epstopdf')
 end
 
 
 % cosmetics for histogram and pdf plots
 function [lain,xl,yl] = cosmo1(ax,titl,xlab,ylab,data,gof,b,nthresh,pthresh,col)
-% 
+ 
 ax.XGrid = 'on';
 ax.YGrid = 'off';
 ax.GridColor = [0 0 0];

@@ -19,7 +19,7 @@ function gps2his(files,protype)
 % Last modified by tschuh-at-princeton.edu, 02/03/2022
 % Last modified by fjsimons-at-princeton.edu, 02/06/2022
 
-% New output filename made from first, you'll save the full info
+% Output filename made from first input
 [~,fname,~] = fileparts(files{1});
 fname=sprintf('000X-%s.mat',suf(fname,'-'));
 

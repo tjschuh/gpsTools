@@ -52,9 +52,10 @@ defval('plt',1)
 if protype=='ppp'
   % if outfile doesnt exist, make it and save it, otherwise load it
   if exist(outfile,'file')==0
-    
-    % explicitly define header from kinfile
+    % explicitly define header from *.kin
     h = {'t','xyz','lat','lon','height','nsats','pdop'};
+    % all possible satellite types
+    sattypes = {'Total','GPS','GLONASS','Galileo','BDS-2','BDS-3','QZSS'};
     
     % original *.kin file columns were: 
     % Mjd, SoD, X, Y, Z, Latitude, Longitufe, Height, Nsats, PDOP
@@ -76,28 +77,12 @@ if protype=='ppp'
     warning on MATLAB:nargchk:deprecated
         
     % get rid of sat cols that are all zeros
-    % all possible satellite types
-    sattypes = {'Total','GPS','GLONASS','Galileo','BDS-2','BDS-3','QZSS'};
     % cols 9:15 are sat info
-    counter = 1;
+    satcol=9:15;
+    chuck=~sum(dm(:,satcol));
+    hsat=sattypes(~chuck);
+    sats=dm(:,satcol(~chuck))
     
-    defval('meth',1)
-    switch meth
-     case 1
-      for i = 9:15
-	% if any rows of col i are nonzero, we keep entire col
-	if sum(dm(:,i)) ~= 0
-	  % copy entire col to sats
-	  sats(:,counter) = dm(:,i);
-	  % copy col's header info to hsat
-	  hsat{counter} = sattypes{i-8};
-	  counter = counter + 1;
-	end
-      end
-     case 2
-      % To do: Do without a loop
-    end
-
     % make data struct explicitly
     d.(h{1}) = t;
     d.(h{2}) = dm(:,3:5);

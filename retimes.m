@@ -31,4 +31,3 @@ fnt=fieldnames(tt);
 for j=2:length(fnd)
   d.(fnd{j})=tt.(fnt{j-1});
 end    
-

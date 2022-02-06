@@ -74,6 +74,8 @@ if protype=='ppp'
     warning off MATLAB:nargchk:deprecated
     % lat lon cols are 6 and 7
     [x,y,zone]=deg2utm(dm(:,6)',rem((dm(:,7))',180)-180);
+    % if unique zone save only one
+    if ~sum(sum(zone,1)/length(zone)-zone(1,:)); zone=zone(1,:); end
     warning on MATLAB:nargchk:deprecated
         
     % get rid of sat cols that are all zeros
@@ -83,7 +85,7 @@ if protype=='ppp'
     hsat=sattypes(~chuck);
     sats=dm(:,satcol(~chuck))
     
-    % make data struct explicitly
+    % make data structure explicitly
     d.(h{1}) = t;
     d.(h{2}) = dm(:,3:5);
     d.xyzunit = 'm';
@@ -93,14 +95,13 @@ if protype=='ppp'
     d.utmeasting = x;
     d.utmnorthing = y;
     d.utmunit = 'm';
-    d.utmzone = zones;
-    % if all zones are equal, collapes to a single zone
+    d.utmzone = zone;
     d.(h{5}) = dm(:,8);
     d.heightunit = 'm (rel to WGS84)';
     d.satlabels = hsat;
     d.(h{6}) = sats;
     d.(h{7}) = dm(:,end);
-    
+    % Save
     save(outfile,'d')
   else
     load(outfile)
@@ -128,18 +129,16 @@ elseif protype == 'rtk'
     % use built-in matlab function geodetic2ecef to do conversion
     [x,y,z] = geodetic2ecef(wgs84,dm.Var3,dm.Var4,dm.Var5);
     
-    % convert lat,lon to utm easting,northing in meters
-    % create cell array with height(dm)
-    zones = cell(height(dm),1);
-    % lat lon cols are 3 and 4
-    % To do: without a loop?
-    for i = 1:height(dm)
-      % need to use rem to convert lon from (0,360) to (-180,180) to get utm zone correct
-      [utmx(i,1),utmy(i,1),zone] = deg2utm(dm.Var3(i),dm.Var4(i));
-      % save utmzone to cell array
-      zones{i} = zone;
-    end
-    
+    % convert lat & lon to utm easting & northing in meters
+    warning off MATLAB:nargchk:deprecated
+    % lat lon cols are 6 and 7
+    [utmx,utmy,zone]=deg2utm(dm.Var3(:)',dm.Var4(:)');
+    % if unique zone save only one
+    if ~sum(sum(zone,1)/length(zone)-zone(1,:)); zone=zone(1,:); end
+    warning on MATLAB:nargchk:deprecated
+        
+
+    % make data structure explicitly
     d.t = dt;
     d.xyz = [x y z];
     d.xyzunit = 'm';
@@ -155,7 +154,7 @@ elseif protype == 'rtk'
     d.satlabels = 'Total';
     d.nsats = dm.Var7;
     d.pdop = dm.Var15;
-
+    % Save
     save(outfile,'d')
   else
     load(outfile)
@@ -176,6 +175,9 @@ if plt == 1
   % we also want to be able to combine prd/mat files and
   % this method will still work here
 
+  % FJS Commented this all out - see mat2mod
+  
+  
   % use timetable and retime functions (very useful!)
 %  tt = timetable(d.t,d.xyz,d.lat,d.lon,d.utmeasting,d.utmnorthing,d.utmzone,d.height,d.nsats,d.pdop);
 %  rett = retime(tt,'secondly','fillwithmissing');

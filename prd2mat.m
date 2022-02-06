@@ -69,19 +69,10 @@ if protype=='ppp'
     t=datetime([ymd repmat(' ',size(ymd,1),1) hms],...
 		 'InputFormat','dd-MMM-yyyy HH:mm:ss');
 
-    keyboard
-    
     % convert lat & lon to utm easting & northing in meters
     warning off MATLAB:nargchk:deprecated
-    % create cell array with length(dm)
-    zones = cell(length(dm),1);
     % lat lon cols are 6 and 7
-    % To do: without a loop?
-    for i = 1:length(dm)
-      % convert lon from (0,360) to (-180,180) to get utm zone correct
-      % dm(i,7)-360*[dm(i,7)>180] or rem((dm(i,7)),180)-180
-      [x(i,1),y(i,1),zone{i}]=deg2utm(dm(i,6),rem((dm(i,7)),180)-180);
-    end
+    [x,y,zone]=deg2utm(dm(:,6)',rem((dm(:,7))',180)-180);
     warning on MATLAB:nargchk:deprecated
         
     % get rid of sat cols that are all zeros

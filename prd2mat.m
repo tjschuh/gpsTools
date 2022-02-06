@@ -60,34 +60,30 @@ if protype=='ppp'
     % Mjd, SoD, X, Y, Z, Latitude, Longitufe, Height, Nsats, PDOP
     dm=load(prdfile);
 
-    keyboard
     % make datetime array from kinfile columns 1 and 2
     % convert Mjd to ymd
     ymd=datestr(dm(:,1)+678942);
     % convert SoD to hms
     hms=datestr(seconds(dm(:,2)),'HH:MM:SS');
-    % need to use for loop here bc dealing with char arrays
-    for i=1:length(dm)
-      % combine ymd and hms into one string
-      tstr(i,:)=append(ymd(i,:),' ',hms(i,:));
-    end
     % convert tstr to datetime
-    t = datetime(tstr,'InputFormat','dd-MMM-yyyy HH:mm:ss');
+    t=datetime([ymd repmat(' ',size(ymd,1),1) hms],...
+		 'InputFormat','dd-MMM-yyyy HH:mm:ss');
 
     keyboard
     
-    % convert lat,lon to utm easting,northing in meters
+    % convert lat & lon to utm easting & northing in meters
+    warning off MATLAB:nargchk:deprecated
     % create cell array with length(dm)
     zones = cell(length(dm),1);
     % lat lon cols are 6 and 7
     % To do: without a loop?
     for i = 1:length(dm)
-      % need to use rem to convert lon from (0,360) to (-180,180) to get utm zone correct
-      [x(i,1),y(i,1),zone] = deg2utm(dm(i,6),rem((dm(i,7)+180),360)-180);
-      % save utmzone to cell array
-      zones{i} = zone;
+      % convert lon from (0,360) to (-180,180) to get utm zone correct
+      % dm(i,7)-360*[dm(i,7)>180] or rem((dm(i,7)),180)-180
+      [x(i,1),y(i,1),zone{i}]=deg2utm(dm(i,6),rem((dm(i,7)),180)-180);
     end
-    
+    warning on MATLAB:nargchk:deprecated
+        
     % get rid of sat cols that are all zeros
     % all possible satellite types
     sattypes = {'Total','GPS','GLONASS','Galileo','BDS-2','BDS-3','QZSS'};

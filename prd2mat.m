@@ -1,13 +1,13 @@
 function varargout=prd2mat(prdfile,protype,plt)
 % d=PRD2MAT(prdfile,protype,plt)
 %
-% take a *.prd solution file and
-% create a structured MATLAB .mat file 
+% Turns a *.prd GNSS Precise Point Positioning solution file (created by
+% PPP2PRD or RTK2PRD) into a structured *.mat file (and a plot)
 %
 % INPUT:
 %
-% .prd file    processed, solution output file created by kin2prd or pos2prd
-% protype      type of prd file (ppp or rtk)
+% prdfile      string with filename (e.g. '0002-05340.prd')
+% protype      type of prd file ('ppp' or 'rtk')
 % plt          0 for no plot, 1 for plot (default: 1)
 %
 % OUTPUT:
@@ -17,11 +17,11 @@ function varargout=prd2mat(prdfile,protype,plt)
 %
 % EXAMPLE
 %
-% d=prd2mat('prdfile','ppp',1);
+% d=prd2mat('0002-05340.prd','ppp',1);
 %
-% OTHER FUNCTIONS NEEDED:
+% REQUIRES:
 %
-% deg2utm.m
+% DEG2UTM.M
 %
 % TESTED ON:
 %
@@ -32,43 +32,50 @@ function varargout=prd2mat(prdfile,protype,plt)
 % Last modified by tschuh-at-princeton.edu, 02/03/2022
 % Last modified by fjsimons-at-princeton.edu, 02/06/2022
 
-% To do:
-% need to extract trip section from fname somehow
+% TO DO:
+% extract trip section from fname somehow
 % currently manually changing at end of code
 %
-% need some way to signify on plot when utmzone changes
+% signify on plot when utmzone changes
 
-% prepare the outfile
-% extract just the filename from prdfile with no extension    
-[~,fname,~] = fileparts(prdfile);
-% build the *.mat outfile from fname
-outfile = sprintf('%s.mat',fname);
+% Default file name and type
+defval('prdfile','0002-05340.prd')
+defval('protype','ppp')
 
-if protype == 'ppp'
-  % if outfile doesnt exist, make it and save it
-  % otherwise load it
-  if exist(outfile,'file') == 0
+% New output filename made from input
+[~,fname,~]=fileparts(prdfile);
+outfile=sprintf('%s.mat',fname);
+
+% Make a plot or not
+defval('plt',1)
+
+if protype=='ppp'
+  % if outfile doesnt exist, make it and save it, otherwise load it
+  if exist(outfile,'file')==0
     
-    % load data
-    % file comes in: Mjd, SoD, X, Y, Z, Lat, Lon, Ht, Nsat, PDOP
-    dm = load(prdfile);
-
     % explicitly define header from kinfile
     h = {'t','xyz','lat','lon','height','nsats','pdop'};
     
+    % original *.kin file columns were: 
+    % Mjd, SoD, X, Y, Z, Latitude, Longitufe, Height, Nsats, PDOP
+    dm=load(prdfile);
+
+    keyboard
     % make datetime array from kinfile columns 1 and 2
     % convert Mjd to ymd
-    ymd = datestr(dm(:,1)+678942);
+    ymd=datestr(dm(:,1)+678942);
     % convert SoD to hms
-    hms = datestr(seconds(dm(:,2)),'HH:MM:SS');
+    hms=datestr(seconds(dm(:,2)),'HH:MM:SS');
     % need to use for loop here bc dealing with char arrays
-    for i = 1:length(dm)
-      % combine ymd and hms into one str
-      tstr(i,:) = append(ymd(i,:),' ',hms(i,:));
+    for i=1:length(dm)
+      % combine ymd and hms into one string
+      tstr(i,:)=append(ymd(i,:),' ',hms(i,:));
     end
     % convert tstr to datetime
     t = datetime(tstr,'InputFormat','dd-MMM-yyyy HH:mm:ss');
 
+    keyboard
+    
     % convert lat,lon to utm easting,northing in meters
     % create cell array with length(dm)
     zones = cell(length(dm),1);
@@ -189,8 +196,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % plotting
-% only make the plot if it doesnt exist
-defval('plt',1)
 if plt == 1
 
   % before anything else, need to fill timeskips with NaNs
@@ -200,8 +205,8 @@ if plt == 1
   % this method will still work here
 
   % use timetable and retime functions (very useful!)
-  tt = timetable(d.t,d.xyz,d.lat,d.lon,d.utmeasting,d.utmnorthing,d.utmzone,d.height,d.nsats,d.pdop);
-  rett = retime(tt,'secondly','fillwithmissing');
+%  tt = timetable(d.t,d.xyz,d.lat,d.lon,d.utmeasting,d.utmnorthing,d.utmzone,d.height,d.nsats,d.pdop);
+%  rett = retime(tt,'secondly','fillwithmissing');
 
   % redefine struct fields with NaN rows included
   d.t = rett.Time;

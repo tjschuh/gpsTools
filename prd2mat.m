@@ -220,19 +220,20 @@ if plt == 1
 	    datestr(tc(ceil(2*end/3)),'HH:MM:SS'),datestr(tc(end),'HH:MM:SS')})
   hold on
   % grey out "bad" data where nsats is too low or pdop is too high or 0
-  scatter(bx(1:int:end)',by(1:int:end)',sz,[0.7 0.7 0.7],'filled')
+  scatter(bx(1:int:end)',by(1:int:end)',sz,grey,'filled')
   grid on
   longticks
   xlabel('easting [m]')
   ylabel('northing [m]')
   t(1)=title(sprintf('Ship Location (Every %dth Point)',int));
+  box on
 
   % Second panel - the elevation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(2)=subplot(2,2,2);
   plot(d.t(1:int:end),gh(1:int:end),'color',[0.4660 0.6740 0.1880])
   hold on
   % grey out "bad" data where nsats is too low or pdop is too high or 0
-  plot(d.t(1:int:end),bh(1:int:end),'color',[0.7 0.7 0.7])
+  plot(d.t(1:int:end),bh(1:int:end),'color',grey)
   xlim([d.t(1) d.t(end)])
   xticklabels([])
   % remove outliers so plotting looks better
@@ -250,32 +251,31 @@ if plt == 1
   plot(d.t,d.nsats(:,1),'b','LineWidth',1)
   yticks([min(d.nsats(:,1))-1:max(d.nsats(:,1))+1])
   ylim([min(d.nsats(:,1))-0.5 max(d.nsats(:,1))+0.5])
-  ylabel('number of observed satellites')
+  % ylabel('number of observed satellites')
+  ylabel('number of satellites')
   yyaxis right
   plot(d.t,d.pdop,'r','LineWidth',1)
   ylim([min(d.pdop)-0.25 max(d.pdop)+0.25])
   xlim([d.t(1) d.t(end)])
-  ylabel('position dilution of precision')
+  %ylabel('position dilution of precision')
+  ylabel('dilution of precision')
   % can only turn grid on for left axis
   grid on
   longticks
   t(3)=title('Total Number of Satellites and PDOP');
+
+  t(4)=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d.t(1)),datestr(d.t(end))));
+  movev(t(4),0.3)
+
+  %a = annotation('textbox',[0.23 0.1 0 0],'String',['Unit 1: camp'],'FitBoxToText','on');
+  %a.FontSize = 12;
   
   % Get rid of the titles
   delete(t)
   
   keyboard
   
-  
-
-  tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d.t(1)),datestr(d.t(end))));
-  movev(tt,0.3)
-
-  a = annotation('textbox',[0.23 0.1 0 0],'String',['Unit 1: camp'],'FitBoxToText','on');
-  a.FontSize = 12;
-  
   figdisp([],fname,[],2)
-
 end
 
 % optional output

@@ -26,7 +26,7 @@ function varargout=prd2mat(prdfile,protype,plt)
 % TESTED ON:
 %
 % R2020a Update 4 (9.8.0.1417392)
-% 9.0.0.341360 (R2016a)
+% 9.0.0.341360 (R2016a) - without the timetabling... 
 %
 % Originally written by tschuh-at-princeton.edu, 10/06/2021
 % Last modified by tschuh-at-princeton.edu, 02/03/2022
@@ -61,7 +61,7 @@ if protype=='ppp'
     % Mjd, SoD, X, Y, Z, Latitude, Longitufe, Height, Nsats, PDOP
     dm=load(prdfile);
 
-    % make datetime array from kinfile columns 1 and 2
+    % make datetime array from *.kin columns 1 and 2
     % convert Mjd to ymd
     ymd=datestr(dm(:,1)+678942);
     % convert SoD to hms
@@ -104,6 +104,8 @@ if protype=='ppp'
     % Save
     save(outfile,'d')
   else
+    % Load
+    disp(sprintf('Loading %s',outfile))
     load(outfile)
   end
 
@@ -169,34 +171,27 @@ end
 % plotting
 if plt == 1
 
-  % before anything else, need to fill timeskips with NaNs
-  % we dont do this during the creation of the mat file
-  % bc we want the mat file to be consistent with the prd file
-  % we also want to be able to combine prd/mat files and
-  % this method will still work here
+  % before anything else, need to fill timeskips with NaNs we don't do this
+  % during the creation of the mat file because we want the mat file to be
+  % consistent with the prd file we also want to be able to combine prd/mat
+  % files and this method will still work here
   
   % Use (RE)TIME(TABLE) to fill in time skips/data gaps with NaNs
-  drem={'xyzunit','lonlatunit','utmunit','heightunit','satlabels'};
+  drem={'xyzunit','lonlatunit','utmunit','heightunit','satlabels','utmzone'};
   d=retimes(d,drem,{'secondly','fillwithmissing'});
-    
-keyboard
+  
+  % keep rows where nsats > nthresh and pdop < pthres and pdop~=0
+  nthresh = 4; pthresh = 15;
 
-  % now we can actually begin plotting
-  f=figure;
-  % position = [left bottom width height]
-  f.Position = [500 250 850 550];
-
-  % find rows where nsats <= 4
-  nthresh = 4;
-  n = d.nsats(:,1);
-
-  % also should find rows where pdop is >= 10 or = 0
-  % this doesnt always coincide with low nsats
-  pthresh = 15;
-  p = d.pdop;
+  % find the good data condition
+  cond=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
 
   % plotting interval
   int = 10;
+  
+  % Just open a figure and fiddle with positions outide
+  figure(1)
+  clf
   
   % plot utm coordinates
   % set the zero for the UTM coordinates based on the min and max of data

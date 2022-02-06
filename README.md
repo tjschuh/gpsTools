@@ -1,2 +1,2 @@
 # gpsTools
-GPS data processing tools
+GPS data processing tools.

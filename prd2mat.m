@@ -174,25 +174,12 @@ if plt == 1
   % bc we want the mat file to be consistent with the prd file
   % we also want to be able to combine prd/mat files and
   % this method will still work here
-
-  % FJS Commented this all out - see mat2mod
   
-  
-  % use timetable and retime functions (very useful!)
-%  tt = timetable(d.t,d.xyz,d.lat,d.lon,d.utmeasting,d.utmnorthing,d.utmzone,d.height,d.nsats,d.pdop);
-%  rett = retime(tt,'secondly','fillwithmissing');
-
-  % redefine struct fields with NaN rows included
-  d.t = rett.Time;
-  d.xyz = rett.Var1;
-  d.lat = rett.Var2;
-  d.lon = rett.Var3;
-  d.utmeasting = rett.Var4;
-  d.utmnorthing = rett.Var5;
-  d.utmzone = rett.Var6;
-  d.height = rett.Var7;
-  d.nsats = rett.Var8;
-  d.pdop = rett.Var9;
+  % Use (RE)TIME(TABLE) to fill in time skips/data gaps with NaNs
+  drem={'xyzunit','lonlatunit','utmunit','heightunit','satlabels'};
+  d=retimes(d,drem,{'secondly','fillwithmissing'});
+    
+keyboard
 
   % now we can actually begin plotting
   f=figure;

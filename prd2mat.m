@@ -188,6 +188,8 @@ if plt == 1
 
   % plotting interval
   int = 10;
+  % Symbol size
+  sz = 10;
   
   % Just open a figure and fiddle with positions outide
   figure(1)
@@ -199,18 +201,18 @@ if plt == 1
   y = d.utmnorthing-(min(d.utmnorthing)-.05*(max(d.utmnorthing)-min(d.utmnorthing)));
   tc = datetime(d.t,'Format','HH:mm:ss'); 
 
-  % find good (g) and bad (b) data
-  % [gx bx] = x
-  gx = x; bx = x;
-  gy = y; by = y;
-  gx(p>=pthresh | p==0 | n<=nthresh) = NaN;
-  bx(p<pthresh & n>nthresh) = NaN;
-  gy(p>=pthresh | p==0 | n<=nthresh) = NaN;
-  by(p<pthresh & n>nthresh) = NaN;
+  % Only good data
+  gx=x; gx(~cond)=NaN;
+  gy=y; gy(~cond)=NaN;
+  gh=d.height; gh(~cond)=NaN;
+  % Only bad data
+  bx=x; bx(cond)=NaN;
+  by=y; by(cond)=NaN;
+  bh=d.height; bh(cond)=NaN;
 
+  % First panel - the ship track %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(1)=subplot(2,2,[1 3]);
   c = linspace(1,10,length(x(1:int:end)));
-  sz = 10;
   scatter(gx(1:int:end)',gy(1:int:end)',sz,c,'filled')
   colormap(jet)
   colorbar('southoutside','Ticks',[1:3:10],'TickLabels',...
@@ -221,15 +223,11 @@ if plt == 1
   scatter(bx(1:int:end)',by(1:int:end)',sz,[0.7 0.7 0.7],'filled')
   grid on
   longticks
-  xlabel('Easting [m]')
-  ylabel('Northing [m]')
-  title(sprintf('Ship Location (Every %dth Point)',int))
+  xlabel('easting [m]')
+  ylabel('northing [m]')
+  t(1)=title(sprintf('Ship Location (Every %dth Point)',int));
 
-  % plot heights relative to WGS84
-  gh = d.height; bh = d.height;
-  gh(p>=pthresh | p==0 | n<=nthresh) = NaN;
-  bh(p<pthresh & n>nthresh) = NaN;
-
+  % Second panel - the elevation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(2)=subplot(2,2,2);
   plot(d.t(1:int:end),gh(1:int:end),'color',[0.4660 0.6740 0.1880])
   hold on
@@ -243,25 +241,32 @@ if plt == 1
   ylim([min(htout,[],'all')-0.005*abs(min(htout,[],'all')) max(htout,[],'all')+0.005*abs(max(htout,[],'all'))])
   grid on
   longticks
-  ylabel('Height relative to WGS84 [m]')
-  title(sprintf('Ship Height (Every %dth Point)',int))
+  ylabel('height above WGS84 [m]')
+  t(2)=title(sprintf('Ship Height (Every %dth Point)',int));
   
-  % plot nsats and pdop on same plot
+  % Third panel, nsats and pdop  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(3)=subplot(2,2,4);
   yyaxis left
   plot(d.t,d.nsats(:,1),'b','LineWidth',1)
   yticks([min(d.nsats(:,1))-1:max(d.nsats(:,1))+1])
   ylim([min(d.nsats(:,1))-0.5 max(d.nsats(:,1))+0.5])
-  ylabel('Number of Observed Satellites') 
+  ylabel('number of observed satellites')
   yyaxis right
   plot(d.t,d.pdop,'r','LineWidth',1)
   ylim([min(d.pdop)-0.25 max(d.pdop)+0.25])
   xlim([d.t(1) d.t(end)])
-  ylabel('Position Dilution Of Precision')
+  ylabel('position dilution of precision')
   % can only turn grid on for left axis
   grid on
   longticks
-  title('Total Number of Satellites and PDOP')
+  t(3)=title('Total Number of Satellites and PDOP');
+  
+  % Get rid of the titles
+  delete(t)
+  
+  keyboard
+  
+  
 
   tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d.t(1)),datestr(d.t(end))));
   movev(tt,0.3)
@@ -269,11 +274,8 @@ if plt == 1
   a = annotation('textbox',[0.23 0.1 0 0],'String',['Unit 1: camp'],'FitBoxToText','on');
   a.FontSize = 12;
   
-  % how do I save .pdf to working directory?
-  figdisp(fname,[],'',2,[],'epstopdf')
+  figdisp([],fname,[],2)
 
-  % close figure
-  close
 end
 
 % optional output

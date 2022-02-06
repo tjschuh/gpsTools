@@ -187,9 +187,9 @@ if plt == 1
   cond=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
 
   % plotting interval
-  int = 10;
+  pint=20;
   % Symbol size
-  sz = 10;
+  sz=10;
   
   % Just open a figure and fiddle with positions outide
   figure(1)
@@ -212,28 +212,40 @@ if plt == 1
 
   % First panel - the ship track %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(1)=subplot(2,2,[1 3]);
-  c = linspace(1,10,length(x(1:int:end)));
-  scatter(gx(1:int:end)',gy(1:int:end)',sz,c,'filled')
+  c = linspace(1,10,length(x(1:pint:end)));
+  scatter(gx(1:pint:end)',gy(1:pint:end)',sz,c,'filled')
   colormap(jet)
-  colorbar('southoutside','Ticks',[1:3:10],'TickLabels',...
+  cb=colorbar('southoutside','Ticks',[1:3:10],'TickLabels',...
 	   {datestr(tc(1),'HH:MM:SS'),datestr(tc(floor(end/3)),'HH:MM:SS'),...
-	    datestr(tc(ceil(2*end/3)),'HH:MM:SS'),datestr(tc(end),'HH:MM:SS')})
+	    datestr(tc(ceil(2*end/3)),'HH:MM:SS'),datestr(tc(end),'HH:MM:SS')});
+  %shrink(cb,1,1.5)
+  % Give the color bar an xlabel with the day!
+  dat1=datestr(d.t(1),'dd mmm yyyy');
+  dat2=datestr(d.t(end),'dd mmm yyyy');
+  if dat1==dat2
+    cb.XLabel.String=sprintf('%s',dat1);
+  else
+    cb.XLabel.String=sprintf('%s to %s',dat1,dat2);
+  end
+  axes(ah(1))
+  axis equal
   hold on
   % grey out "bad" data where nsats is too low or pdop is too high or 0
-  scatter(bx(1:int:end)',by(1:int:end)',sz,grey,'filled')
+  scatter(bx(1:pint:end)',by(1:pint:end)',sz,grey,'filled')
   grid on
-  longticks
+  longticks(ah)
+  longticks(cb)
   xlabel('easting [m]')
   ylabel('northing [m]')
-  t(1)=title(sprintf('Ship Location (Every %dth Point)',int));
+  t(1)=title(sprintf('Ship Location (Every %dth Point)',pint));
   box on
 
   % Second panel - the elevation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(2)=subplot(2,2,2);
-  plot(d.t(1:int:end),gh(1:int:end),'color',[0.4660 0.6740 0.1880])
+  plot(d.t(1:pint:end),gh(1:pint:end),'color',[0.4660 0.6740 0.1880])
   hold on
   % grey out "bad" data where nsats is too low or pdop is too high or 0
-  plot(d.t(1:int:end),bh(1:int:end),'color',grey)
+  plot(d.t(1:pint:end),bh(1:pint:end),'color',grey)
   xlim([d.t(1) d.t(end)])
   xticklabels([])
   % remove outliers so plotting looks better
@@ -243,7 +255,7 @@ if plt == 1
   grid on
   longticks
   ylabel('height above WGS84 [m]')
-  t(2)=title(sprintf('Ship Height (Every %dth Point)',int));
+  t(2)=title(sprintf('Ship Height (Every %dth Point)',pint));
   
   % Third panel, nsats and pdop  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(3)=subplot(2,2,4);
@@ -264,7 +276,7 @@ if plt == 1
   longticks
   t(3)=title('Total Number of Satellites and PDOP');
 
-  t(4)=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d.t(1)),datestr(d.t(end))));
+  t(4)=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',d.t(1),d.t(end)));
   movev(t(4),0.3)
 
   %a = annotation('textbox',[0.23 0.1 0 0],'String',['Unit 1: camp'],'FitBoxToText','on');
@@ -272,8 +284,6 @@ if plt == 1
   
   % Get rid of the titles
   delete(t)
-  
-  keyboard
   
   figdisp([],fname,[],2)
 end

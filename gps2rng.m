@@ -46,7 +46,7 @@ dogz=xyz(3);
 [~,fname,~]=fileparts(files{1});
 filex=suf(fname,'-');
 
-% combine all datasets into 1 with no plotting
+% combine all datasets into 1 large matrix with no plotting
 [d,tmax]=mat2mod(files);
 
 % Tick marks
@@ -57,7 +57,8 @@ tixl=datestr(d(1).t(ttix),'HH:MM:SS');
 % Averaging method, or keeping them invidual, or taking only one,
 switch meth
   case 'ave'
-   dxyz=squeeze(nanmean(reshape(cat(1,d(:).xyz),size(d(1).xyz,1),length(d),3),2));
+    % more or less one line version of mat2com.m
+    dxyz=squeeze(nanmean(reshape(cat(1,d(:).xyz),size(d(1).xyz,1),length(d),3),2));
 end
 
 % calculate slant range between ship and beacon for each second in meters

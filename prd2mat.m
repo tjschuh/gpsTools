@@ -49,6 +49,15 @@ outfile=sprintf('%s.mat',fname);
 % Make a plot or not
 defval('plt',1)
 
+switch protype
+ case 'ppp'
+  % light blue --> PPP
+  defval('col',[0.400 0.6667 0.8431])
+ case 'rtk'
+  % lime green --> RTK
+  defval('col',[0.466 0.6740 0.1880])
+end
+
 if protype=='ppp'
   % if outfile doesnt exist, make it and save it, otherwise load it
   if exist(outfile,'file')==0
@@ -181,25 +190,37 @@ if plt == 1
   d=retimes(d,drem,{'secondly','fillwithmissing'});
   
   % keep rows where nsats > nthresh and pdop < pthres and pdop~=0
-  nthresh = 4; pthresh = 15;
+  nthresh = 5; pthresh = 15;
 
-  % find the good data condition
-  cond=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
+  % Symbol size
+  sz=10;
 
   % plotting interval
   pint=20;
-  % Symbol size
-  sz=10;
+
+  % subsample first, then look for condition
+  dkp={'t','xyz','lat','lon','utmeasting','utmnorthing','height','nsats','pdop'};
+  for index=1:length(dkp)
+    % Don't forget that some are multicolumn, and keep the last one
+    ssam=unique([1:pint:length(d.(dkp{index})) length(d.(dkp{index}))]);
+    d.(dkp{index})=d.(dkp{index})(ssam,:);
+  end
   
+  % find the good data condition
+  cond=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
+
   % Just open a figure and fiddle with positions outide
   figure(1)
   clf
-  
-  % plot utm coordinates
-  % set the zero for the UTM coordinates based on the min and max of data
-  x = d.utmeasting-(min(d.utmeasting)-.05*(max(d.utmeasting)-min(d.utmeasting)));
-  y = d.utmnorthing-(min(d.utmnorthing)-.05*(max(d.utmnorthing)-min(d.utmnorthing)));
-  tc = datetime(d.t,'Format','HH:mm:ss'); 
+  % plot utm coordinates referenced to the minima
+  x=d.utmeasting -min(d.utmeasting);
+  y=d.utmnorthing-min(d.utmnorthing);
+  % and refer the times to the beginning of the sequence
+  t=d.t-d.t(1);
+  % Tick marks
+  ntix=3;
+  ttix=[1 round([1:ntix-1]*length(t)/(ntix-1))];
+  tixl=datestr(d.t(ttix),'HH:MM:SS');
 
   % Only good data
   gx=x; gx(~cond)=NaN;
@@ -212,13 +233,25 @@ if plt == 1
 
   % First panel - the ship track %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(1)=subplot(2,2,[1 3]);
-  c = linspace(1,10,length(x(1:pint:end)));
-  scatter(gx(1:pint:end)',gy(1:pint:end)',sz,c,'filled')
+  % First the good data
+  sg=scatter(gx',gy',sz,seconds(t),'filled'); hold on
+  % Then the bad data
+  sb=scatter(bx',by',sz,grey,'filled'); hold off
+  xlabel('relative easting [m]')
+  ylabel('relative northing [m]')
+  tl(1)=title(sprintf('Ship Location (Every %dth Point)',pint));
+  grid on; box on
+  axis equal tight
+  % open it up a smidgen
+  xel=xlim; yel=ylim;
+  ah(1).XLim=xel+[-1 1]*range(xel)/20;
+  ah(1).YLim=yel+[-1 1]*range(yel)/20;
+  longticks(ah)
+  % Then the color scale
   colormap(jet)
-  cb=colorbar('southoutside','Ticks',[1:3:10],'TickLabels',...
-	   {datestr(tc(1),'HH:MM:SS'),datestr(tc(floor(end/3)),'HH:MM:SS'),...
-	    datestr(tc(ceil(2*end/3)),'HH:MM:SS'),datestr(tc(end),'HH:MM:SS')});
+  cb=colorbar('southoutside','Ticks',seconds(t(ttix)),'TickLabels',tixl);
   %shrink(cb,1,1.5)
+  longticks(cb)
   % Give the color bar an xlabel with the day!
   dat1=datestr(d.t(1),'dd mmm yyyy');
   dat2=datestr(d.t(end),'dd mmm yyyy');
@@ -227,64 +260,54 @@ if plt == 1
   else
     cb.XLabel.String=sprintf('%s to %s',dat1,dat2);
   end
-  axes(ah(1))
-  axis equal
-  hold on
-  % grey out "bad" data where nsats is too low or pdop is too high or 0
-  scatter(bx(1:pint:end)',by(1:pint:end)',sz,grey,'filled')
-  grid on
-  longticks(ah)
-  longticks(cb)
-  xlabel('easting [m]')
-  ylabel('northing [m]')
-  t(1)=title(sprintf('Ship Location (Every %dth Point)',pint));
-  box on
 
   % Second panel - the elevation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(2)=subplot(2,2,2);
-  plot(d.t(1:pint:end),gh(1:pint:end),'color',[0.4660 0.6740 0.1880])
-  hold on
-  % grey out "bad" data where nsats is too low or pdop is too high or 0
-  plot(d.t(1:pint:end),bh(1:pint:end),'color',grey)
+  % First the good data
+  plot(d.t,gh,'color',col); hold on
+  % Then the bad data
+  plot(d.t,bh,'color',grey); hold off
   xlim([d.t(1) d.t(end)])
-  xticklabels([])
+  xticks(d.t(ttix))
+  xticklabels(tixl)
+  
   % remove outliers so plotting looks better
-  htout = rmoutliers(d.height,'mean');
-  outpct = (length(d.height)-length(htout))*100/length(d.height);
-  ylim([min(htout,[],'all')-0.005*abs(min(htout,[],'all')) max(htout,[],'all')+0.005*abs(max(htout,[],'all'))])
+  % htout = rmoutliers(d.height,'mean');
+  % How much was removed, in percent
+  % outpct = (length(d.height)-length(htout))/length(d.height)*100;
+  % ylim([min(htout,[],'all')-0.005*abs(min(htout,[],'all')) max(htout,[],'all')+0.005*abs(max(htout,[],'all'))])
   grid on
   longticks
   ylabel('height above WGS84 [m]')
-  t(2)=title(sprintf('Ship Height (Every %dth Point)',pint));
+  tl(2)=title(sprintf('Ship Height (Every %dth Point)',pint));
   
   % Third panel, nsats and pdop  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ah(3)=subplot(2,2,4);
   yyaxis left
-  plot(d.t,d.nsats(:,1),'b','LineWidth',1)
+  ps=plot(d.t,d.nsats(:,1),'b');
   yticks([min(d.nsats(:,1))-1:max(d.nsats(:,1))+1])
   ylim([min(d.nsats(:,1))-0.5 max(d.nsats(:,1))+0.5])
   % ylabel('number of observed satellites')
   ylabel('number of satellites')
   yyaxis right
-  plot(d.t,d.pdop,'r','LineWidth',1)
+  pp=plot(d.t,d.pdop,'r')
   ylim([min(d.pdop)-0.25 max(d.pdop)+0.25])
   xlim([d.t(1) d.t(end)])
+  xticks(d.t(ttix))
+  xticklabels(tixl)
   %ylabel('position dilution of precision')
   ylabel('dilution of precision')
   % can only turn grid on for left axis
   grid on
   longticks
-  t(3)=title('Total Number of Satellites and PDOP');
+  tl(3)=title('Total Number of Satellites and PDOP');
 
-  t(4)=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',d.t(1),d.t(end)));
-  movev(t(4),0.3)
+  tl(4)=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',d.t(1),d.t(end)));
+  movev(tl(4),0.3)
 
-  %a = annotation('textbox',[0.23 0.1 0 0],'String',['Unit 1: camp'],'FitBoxToText','on');
-  %a.FontSize = 12;
-  
-  % Get rid of the titles
-  delete(t)
-  
+  % Get rid of the ugly titles
+  delete(tl)
+  % Print to file
   figdisp([],fname,[],2)
 end
 

@@ -222,7 +222,7 @@ if plt == 1
   t=d.t-d.t(1);
   % Tick marks
   ntix=3;
-  ttix=[1 round([1:ntix-1]*length(t)/(ntix-1))];
+  ttix=[1 round([1:ntix-1]*length(d(1).t)/(ntix-1))];
   tixl=datestr(d.t(ttix),'HH:MM:SS');
 
   % Only good data

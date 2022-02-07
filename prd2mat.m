@@ -190,13 +190,18 @@ if plt == 1
   d=retimes(d,drem,{'secondly','fillwithmissing'});
   
   % keep rows where nsats > nthresh and pdop < pthres and pdop~=0
-  nthresh = 5; pthresh = 15;
+  nthresh = 4; pthresh = 15;
 
   % Symbol size
   sz=10;
 
   % plotting interval
   pint=20;
+  deltat=seconds(d.t(pint+1)-d.t(1));
+  
+  % Average speed
+  vave=nanmean(sqrt([diff(d.utmeasting).^2+diff(d.utmnorthing).^2])./...
+	       seconds(diff(d.t)))*3600/1000;
 
   % subsample first, then look for condition
   dkp={'t','xyz','lat','lon','utmeasting','utmnorthing','height','nsats','pdop'};
@@ -246,6 +251,12 @@ if plt == 1
   xel=xlim; yel=ylim;
   ah(1).XLim=xel+[-1 1]*range(xel)/20;
   ah(1).YLim=yel+[-1 1]*range(yel)/20;
+  % Some minor annotations
+  tx(1)=text(0,0,sprintf('dop < %.0f\nsat > %.0f\n%s = %3.1f km/h\n%st = %i s',...
+			 pthresh,nthresh,'v',vave,'\Delta',deltat),...
+	     'VerticalAlignment','bottom');
+
+
   longticks(ah)
   % Then the color scale
   colormap(jet)
@@ -290,7 +301,7 @@ if plt == 1
   % ylabel('number of observed satellites')
   ylabel('number of satellites')
   yyaxis right
-  pp=plot(d.t,d.pdop,'r')
+  pp=plot(d.t,d.pdop,'r');
   ylim([min(d.pdop)-0.25 max(d.pdop)+0.25])
   xlim([d.t(1) d.t(end)])
   xticks(d.t(ttix))

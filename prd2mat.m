@@ -147,7 +147,6 @@ elseif protype == 'rtk'
     % if unique zone save only one
     if ~sum(sum(zone,1)/length(zone)-zone(1,:)); zone=zone(1,:); end
     warning on MATLAB:nargchk:deprecated
-        
 
     % make data structure explicitly
     d.t = dt;
@@ -170,7 +169,6 @@ elseif protype == 'rtk'
   else
     load(outfile)
   end
-
 else
   error('Please select a valid protype')
 end

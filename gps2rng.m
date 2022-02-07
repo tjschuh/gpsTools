@@ -20,8 +20,8 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % EXAMPLE:
 %
-% gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'})
 % gps2rng({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
+% gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'})
 % gps2rng({'Unit2.camp.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
@@ -67,6 +67,10 @@ sr=sqrt((dxyz(:,1)-dogx).^2+(dxyz(:,2)-dogy).^2+(dxyz(:,3)-dogz).^2);
 % currently not doing anything with this
 st = sr./v;
 
+% optional output
+varns={sr,st};
+varargout=varns(1:nargout);
+
 % Make a plot if you don't want output
 if nargout==0
   % plot the distance [km] vs time
@@ -89,6 +93,21 @@ if nargout==0
   
   xticks(d(1).t(ttix))
   xticklabels(tixl)
+
+  % Arbitrarily absolute, ok for the moment
+  tt(1)=text(tmax(1),15000,sprintf('%i%s NaN',...
+				   round(sum(isnan(sr))/length(sr)*100),'%'),...
+	     'VerticalAlignment','top');
+
+  stran='';
+  for index=1:length(d)
+    stran=sprintf('%s%s\n',stran,pref(files{index},'-'));
+  end
+  stran=stran(1:end-1);
+  tt(2)=text(tmax(2),15000,stran,'HorizontalAlignment','right',...
+	     'VerticalAlignment','top');
+  set(tt(:),'FontSize',8);
+
   % Give it an XLABEL with the day!
   dat1=datestr(d(1).t(1),'dd mmm yyyy');
   dat2=datestr(d(1).t(end),'dd mmm yyyy');
@@ -105,6 +124,3 @@ if nargout==0
   figdisp([],fname,[],2,[],'epstopdf')
 end
 
-% optional output
-varns={sr,st};
-varargout=varns(1:nargout);

@@ -25,6 +25,7 @@ function varargout = gps2inv(files,st,meth,v,guess)
 %
 % Originally written by tschuh-at-princeton.edu, 02/07/2022
 % Last modified by tschuh-at-princeton.edu, 02/08/2022
+% Last modified by fjsimons-at-princeton.edu, 02/08/2022
 
 % To Do:
 % figure out how to speed up

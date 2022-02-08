@@ -45,7 +45,7 @@ if length(files)>1
   fname=sprintf('Unit%s-%s',nr(1:end),suf(pref(files{1},'.'),'-'));
 end
 
-% combine all datasets into 1 with no plotting
+% combine all datasets into 1 large matrix with no plotting
 [d,tmax]=mat2mod(files);
 
 % Tick marks
@@ -53,11 +53,10 @@ ntix=7;
 ttix=[1 round([1:ntix-1]*length(d(1).t)/(ntix-1))];
 tixl=datestr(d(1).t(ttix),'HH:MM:SS');
 
-% Averaging method, or keeping them invidual, or taking only one...
-
 if length(files)>1
   switch meth
    case 'ave'
+    % more or less one line version of mat2com.m
     dxyz=squeeze(nanmean(reshape(cat(1,d(:).xyz),size(d(1).xyz,1),length(d),3),2));
   end
 else

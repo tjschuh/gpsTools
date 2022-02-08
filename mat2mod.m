@@ -1,9 +1,9 @@
 function varargout=mat2mod(files)
 % [dmat,tmax]=MAT2MOD(files)
 %
-% Given Precise Point Position time series of (four) different units, makes
-% them all start and end at the same time and inserts NaNs for times where
-% no data were processed.
+% Given Precise Point Position time series of different units (e.g.,
+% produced by PRD2MAT), makes them all start and end at the same time and
+% inserts NaNs for times where no data were processed.
 %
 % INPUT:
 % 
@@ -14,16 +14,17 @@ function varargout=mat2mod(files)
 % dmat         higher-dimensional structure with modified input structures
 % tmax         two time strings with the inclusive range
 %
-% EXAMPLE:
+% SEE ALSO:
 %
-% dmat=mat2mod(files);
+% PRD2MAT
 % 
 % Originally written by tschuh-at-princeton.edu, 11/12/2021
 % Last modified by tschuh-at-princeton.edu, 11/15/2021
-% Last modified by fjsimons-at-alum.mit.edu, 02/07/2022
+% Last modified by fjsimons-at-alum.mit.edu, 02/08/2022
 
 % Non-array variables to exclude from the tabling procedure
 drem={'xyzunit','latlonunit','utmunit','heightunit','satlabels','utmzone'};
+% Need to reconcile with earlier versions that mixed up the names
 drem={'xyzunit','lonlatunit','utmunit','heightunit','satlabels','utmzone'};
 
 for i=1:length(files)

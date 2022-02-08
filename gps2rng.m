@@ -1,5 +1,5 @@
 function varargout=gps2rng(files,meth,xyz,v)
-% [sr,st]=GPS2RNG(files,meth,xyz,v)
+% [st,dxyz,sr,xyz]=GPS2RNG(files,meth,xyz,v)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -15,8 +15,11 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % OUTPUT:
 %
-% sr           the distance between the timeseries of points and the target
+% dxyz         the GNSS time series, whichever the summary of the files
 % st           the travel time between the points and the target
+% sr           the distance between the timeseries of points and the target
+% xyz          1x3 matrix with nominal coordinates of the target, in com
+% v            sound speed [m]
 %
 % EXAMPLE:
 %
@@ -64,38 +67,46 @@ else
   dxyz=d.xyz;
 end
 
-% Determine a starting point from the middle section
-imeth='down'; 
-
-switch imeth
- case 'down'
-   % Put in water depth read off the GPSTRAJECT map
-   depth=5225; 
-   % Just about
-   % lonlat=[291.3001853867659   31.4661752724632];
-   % z=gebco(lonlat(1)-360,lonlat(2));
-   % Handpicked by GINPUT on a plot of dxyz...
-   [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
- case 'guess'
-  % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
-  defval('depth',gebco(68+42/60,-(31+27/60)));
-  % Rather put in a better water depth, so all units return uniform
-  % results, and read off the GPSTRAJECT map
-  depth=5225;
-  msex=[1 3]/4;
-  midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
-  [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
+% If input, use it
+defval('xyz',[])
+if isempty(xyz)
+  % Determine a starting point from the middle section
+  imeth='down'; 
+  
+  switch imeth
+   case 'down'
+    % Put in water depth read off the GPSTRAJECT map
+    depth=5225; 
+    % Just about
+    % lonlat=[291.3001853867659   31.4661752724632];
+    % z=gebco(lonlat(1)-360,lonlat(2));
+    % Handpicked by GINPUT on a plot of dxyz...
+    [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
+   case 'guess'
+    % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
+    defval('depth',gebco(68+42/60,-(31+27/60)));
+    % Rather put in a better water depth, so all units return uniform
+    % results, and read off the GPSTRAJECT map
+    depth=5225;
+    msex=[1 3]/4;
+    midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
+    [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
+  end
+  xyz=[dogx dogy dogz];
 end
-   
+
+% This is the forward model %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % calculate slant range between ship and beacon for each second in meters
 sr=sqrt((dxyz(:,1)-dogx).^2+(dxyz(:,2)-dogy).^2+(dxyz(:,3)-dogz).^2);
-
 % calculate slant time from slant range and v [s]
 % currently not doing anything with this
 st = sr./v;
+% In the proper version, it's through complicated velocity, and refraction
+% [sr,st]=raytracingofsomesort
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % optional output
-varns={sr,st};
+varns={st,dxyz,sr,xyz,v};
 varargout=varns(1:nargout);
 
 % Make a plot if you don't want output

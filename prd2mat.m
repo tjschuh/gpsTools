@@ -2,7 +2,8 @@ function varargout=prd2mat(prdfile,protype,plt)
 % d=PRD2MAT(prdfile,protype,plt)
 %
 % Turns a *.prd GNSS Precise Point Positioning solution file (created by
-% PPP2PRD or RTK2PRD) into a structured *.mat file (and a plot)
+% PPP2PRD or RTK2PRD) into a structured *.mat file (and a plot), for
+% subsequent joint handling by, e.g., MAT2MOD.
 %
 % INPUT:
 %
@@ -15,13 +16,17 @@ function varargout=prd2mat(prdfile,protype,plt)
 % d            actual data struct
 % .mat file    output file saved as mat file to working directory
 %
-% EXAMPLE
+% EXAMPLE:
 %
 % d=prd2mat('0002-05340.prd','ppp',1);
 %
 % REQUIRES:
 %
 % DEG2UTM.M
+%
+% SEE ALSO:
+%
+% MAT2MOD
 %
 % TESTED ON:
 %
@@ -30,7 +35,7 @@ function varargout=prd2mat(prdfile,protype,plt)
 %
 % Originally written by tschuh-at-princeton.edu, 10/06/2021
 % Last modified by tschuh-at-princeton.edu, 02/03/2022
-% Last modified by fjsimons-at-princeton.edu, 02/06/2022
+% Last modified by fjsimons-at-princeton.edu, 02/08/2022
 
 % TO DO:
 % extract trip section from fname somehow

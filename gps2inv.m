@@ -1,26 +1,36 @@
-function [sol,tru] = gps2inv(files,st,meth,v,guess)
+function varargout = gps2inv(files,st,meth,v,guess)
+% [sol,tru] = GPS2INV(files,st,meth,v,guess)
+%
+% Given Precise Point Position time series of four different units including
+% slant times, consolidate them into 1 dataset of receivers with x,y,z,t
+% to then do a least-squares inversion to calculate the predicted location
+% of a beacon on the seafloor
 %
 % INPUT:
 %
+% recfiles      cell with MAT-filename strings containing data structures
+% st            slant times/arrival times corresponding to the recfiles
+% meth          method to convert recfiles into one dataset [default: 'ave']
+% v             sound speed [m/s]
+% guess         inital beacon location guess x,y,z,t 
+%
 % OUTPUT:
 %
-% sol           calculated [x y z] beacon location [m]
-% tru           actual [x y z] beacon location [m]
+% sol           calculated [x y z t] beacon location [m]
+% tru           actual [x y z 0] beacon location [m]
 %
 % EXAMPLE:
 %
 % [sol,tru] = gps2inv({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 02/07/2022
+% Last modified by tschuh-at-princeton.edu, 02/08/2022
 
 % To Do:
-% add to header
-% add varargout
-% calculate "uncertainty" between tru and sol
 % figure out how to speed up
 % what's a good phi to use?
 % what's another metric to determine when to stop iterating?
-% add noise to slant times and receiver positions
+% add noise to slant times and receiver positions (covariance matrix)
 
 % true beacon location (x,y,z,t)
 tru = [1.979e6 -5.074e6 3.30385e6 0];
@@ -84,11 +94,17 @@ deltam = inv(transpose(G)*G)*transpose(G)*deltad;
 % add deltam to our initial guess to get a new guess m
 m = guess + deltam';
 
-% calculate phi (sum of squares of residuals) to determine how good how prediction is
+% calculate phi (sum of squares of residuals)
+% to determine how good how prediction is
 phi = (sum(deltad))^2;
 
-% go again and keep refining until phi < 1 (we are happy)
-while phi >= 1e10
+% calculate uncertainty between tru and prediction
+% this probably wrong
+phi2 = sqrt((m(1) - tru(1))^2 + (m(2) - tru(2))^2 + (m(3) - tru(3))^2 + (m(4) - tru(4))^2);
+
+% go again and keep refining until phi < thresh and we are happy
+thresh = 1e10;
+while phi2 >= 1e5
     tpre = m(4) + sqrt((m(1) - dxyzt(:,1)).^2 + (m(2) - dxyzt(:,2)).^2 + (m(3) - dxyzt(:,3)).^2)/v;
 
     Gi1 = (v.*(m(1) - dxyzt(:,1)))./sqrt((m(1) - dxyzt(:,1)).^2 + (m(2) - dxyzt(:,2)).^2 + (m(3) - dxyzt(:,3)).^2);
@@ -105,6 +121,12 @@ while phi >= 1e10
     m = m + deltam';
 
     phi = (sum(deltad))^2;
+
+    phi2 = sqrt((m(1) - tru(1))^2 + (m(2) - tru(2))^2 + (m(3) - tru(3))^2 + (m(4) - tru(4))^2);
 end
 
 sol = m;
+
+% optional output
+varns={sol,tru};
+varargout=varns(1:nargout);

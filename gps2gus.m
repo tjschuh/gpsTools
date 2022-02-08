@@ -1,5 +1,5 @@
-function [x0,y0,z0]=gps2guess(dxyz,depth)
-% [x0,y0,z0]=GPS2GUESS(dxyz,depth)
+function [x0,y0,z0]=gps2gus(dxyz,depth)
+% [x0,y0,z0]=GPS2GUS(dxyz,depth)
 %
 % Given a set of GPS coordinates and a depth, finds a likely drop point by
 % determining the point of closest approach corresponding to that depth.

@@ -1,9 +1,9 @@
 function varargout=gps2com(files,plt)
 % dd=GPS2COM(files,plt)
 %
-% take in all 4 GPS datasets and combine them into one dataset
-% via averaging (eventually will be center of mass (com)) and
-% then plot the results in similar fashion as prd2mat.m
+% Combine a series of GNSS time series into one dataset via averaging
+% (eventually will be center of mass com) and then plot the results in
+% similar fashion as prd2mat.m
 %
 % INPUT:
 %
@@ -25,6 +25,14 @@ function varargout=gps2com(files,plt)
 
 [~,fname,~] = fileparts(files{1});
 fname = sprintf('000Z-%s.mat',suf(fname,'-'));
+
+
+d e f i n i t e l y n o t r e a d y y e t
+
+% Unlike GPS2RNG which computes a distance wrt to a point, this is just a
+% time series. So its product is like those from PRD2MAT and could just
+% use GPS2PLT to render them.
+
 
 % combine all data into 1 dataset
 % simply by taking the average of the data

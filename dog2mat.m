@@ -40,6 +40,9 @@ d e f i n i t e l y n o t r e a d y y e t
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Unwrap disregards NaN's but maybe it shouldn't
+% Could INTERPOLATE over the NaNs for the unwrapping, then undo the interpolation
+
 % Load the ranges with the "dead pixels" nan-ified - singles or jointly
 % Note this is about right with respect to DOG1
 st=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'});
@@ -82,9 +85,15 @@ p(2)=plot(ntags(:,2)+ofy,'r.','MarkerSize',3);
 delete(p(1))
 hold off
 
+Nh=24;
+xlim([0 3600*Nh])
 ylim([3 10])
-longticks(gca)
-xlabel('time [s]')
+longticks(gca,2)
+grid on
+xlabel('time [h]')
+nh=3;
+xticks(0:nh*3600:size(ntags,1))
+xticklabels(0:nh:floor(size(ntags,1)/3600))
 ylabel('slant range time [s]')
 
 figdisp('dog2mat',[],[],2)

@@ -1,5 +1,5 @@
 function varargout=gps2rng(files,meth,xyz,v)
-% [st,dxyz,sr,xyz]=GPS2RNG(files,meth,xyz,v)
+% [st,dxyz,sr,xyz,v]=GPS2RNG(files,meth,xyz,v)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -15,8 +15,8 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % OUTPUT:
 %
-% dxyz         the GNSS time series, whichever the summary of the files
 % st           the travel time between the points and the target
+% dxyz         the GNSS time series, whichever the summary of the files
 % sr           the distance between the timeseries of points and the target
 % xyz          1x3 matrix with nominal coordinates of the target, in com
 % v            sound speed [m]
@@ -72,7 +72,6 @@ defval('xyz',[])
 if isempty(xyz)
   % Determine a starting point from the middle section
   imeth='down'; 
-  
   switch imeth
    case 'down'
     % Put in water depth read off the GPSTRAJECT map
@@ -80,7 +79,7 @@ if isempty(xyz)
     % Just about
     % lonlat=[291.3001853867659   31.4661752724632];
     % z=gebco(lonlat(1)-360,lonlat(2));
-    % Handpicked by GINPUT on a plot of dxyz...
+    % Handpicked by GINPUT on a plot of dxyz... for DOG1
     [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
    case 'guess'
     % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN

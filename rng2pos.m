@@ -1,5 +1,5 @@
-function varargout = rng2pos(dxyz,st,vg,xyzg)
-% [sol,hst] = RNG2POS(dxyz,st,vg,xyzg)
+function varargout = rng2pos(dxyz,st,vg,vn,xyzg,xyzn)
+% [sol,hst,rmse] = RNG2POS(dxyz,st,vg,vn,xyzg,xyzn)
 %
 % Given Precise Point Position time series of a certain configuration
 % (e.g. an average four-station set like from GPS2RNG), and a corresponding
@@ -13,7 +13,9 @@ function varargout = rng2pos(dxyz,st,vg,xyzg)
 %               "source" to the receiver whose position we want to find
 %               here. These are from the DOGS, or, synthetic, from GPS2RNG
 % vg            sound speed guess [m/s]
-% xyzg          initial beacon location guess x,y,z
+% vn            uncertainty in sound speed [m/s]
+% xyzg          initial beacon location guess [x y z] [m]
+% xyzn          uncertainty in xyz [m]
 %
 % OUTPUT:
 %
@@ -21,8 +23,10 @@ function varargout = rng2pos(dxyz,st,vg,xyzg)
 %
 % EXAMPLE:
 %
-% [dxyz,sr,st,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'});
-% sol=rng2pos(dxyz,st,vg,xyzg);
+% [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'});
+% [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},...
+%   [],[2e6 -4.5e6 3e6]);
+% [sol,hst,rmse]=rng2pos(dxyz,st,vg,[],xyzg,[]);
 %
 % Originally written by tschuh-at-princeton.edu, 02/07/2022
 % Last modified by fjsimons-at-princeton.edu, 02/08/2022
@@ -38,6 +42,18 @@ function varargout = rng2pos(dxyz,st,vg,xyzg)
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
+% generate a random decimal value between -10 m/s and 10 m/s
+defval('vn',randi([-10 9]) + rand)
+
+% add noise to vg
+vg = vg + vn;
+
+% generate a random decimal value between -10 cm and 10 cm
+defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000])
+
+% add noise to xyzg
+xyzg = xyzg + xyzn;
+
 % Solution begins with the guess
 sol = xyzg;
 
@@ -46,6 +62,11 @@ hsr = sqrt((dxyz(:,1)-sol(1)).^2 + (dxyz(:,2)-sol(2)).^2 + (dxyz(:,3)-sol(3)).^2
 % simple forward model (could have used GPS2RNG again, more complicated forward models, etc.)
 hst = hsr./vg;
 rmse = norm(st(~isnan(st)) - hst(~isnan(hst)));
+
+%keyboard
+
+% plot rmse with a color bar and plot vn vs mag(xyzn)
+%sg=scatter(vn,,10,seconds(t),'filled'); hold on
 
 % optional output
 varns={sol,hst,rmse};

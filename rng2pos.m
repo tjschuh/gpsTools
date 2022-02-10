@@ -51,6 +51,8 @@ vg = vg + vn;
 % generate a random decimal value between -10 cm and 10 cm
 defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000])
 
+mag = sqrt(xyzn(1)^2 + xyzn(2)^2 + xyzn(3)^2);
+
 % add noise to xyzg
 xyzg = xyzg + xyzn;
 
@@ -63,10 +65,19 @@ hsr = sqrt((dxyz(:,1)-sol(1)).^2 + (dxyz(:,2)-sol(2)).^2 + (dxyz(:,3)-sol(3)).^2
 hst = hsr./vg;
 rmse = norm(st(~isnan(st)) - hst(~isnan(hst)));
 
-%keyboard
-
 % plot rmse with a color bar and plot vn vs mag(xyzn)
-%sg=scatter(vn,,10,seconds(t),'filled'); hold on
+sz = 50;
+scatter(vn,mag,sz,rmse,'filled')
+a = colorbar;
+a.Label.String = 'rmse';
+a.FontSize = 11;
+xlim([-10 10])
+ylim([0 0.2])
+grid on
+longticks
+xlabel('Velocity Noise [m/s]')
+ylabel('XYZ Noise [m]')
+hold on
 
 % optional output
 varns={sol,hst,rmse};

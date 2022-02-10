@@ -36,16 +36,16 @@ mas = 1;
 % Moving average left and right in units of samples
 maslr = ([mas mas]/2)*Fs;
 
-for file = firstfile:lastfile
-    disp(sprintf('Working on file %3.4i (%3.4i of %3.4i)',file,file-firstfile+1,lastfile-firstfile+1))
+for file = firstfile%:lastfile
+%    disp(sprintf('Working on file %3.4i (%3.4i of %3.4i)',file,file-firstfile+1,lastfile-firstfile+1))
     % Open file, turn it into matrix, and then
     % reshape it into a 4 "channel" matrix
     % Here is the filename
-    fname = sprintf('file%d.data',file);
+    fname = sprintf('file%d.data',file)
     sname=sprintf('file%d.mat',file);
     if exist(sname) ~= 2
       % Read the data
-      fid = fopen(fname);
+      fid = fopen(fname)
       FourChan = reshape(fread(fid,inf,'int16'),4,[]);
       fclose(fid);
 
@@ -98,7 +98,7 @@ for file = firstfile:lastfile
     plot(FourChan(1,:),'color',color1)
     ylim([4900 5700])
     yticks([5000 5600])
-    cosmo(gca,titl2{1},xlimit2,xtix2,[])
+    ttl(1)=cosmo(gca,titl2{1},xlimit2,xtix2,[]);
 
     ah(2)=subplot(3,2,3);
     plot(FourChan(2,:),'color',color2)
@@ -106,7 +106,7 @@ for file = firstfile:lastfile
     ylim([min(FourChan(2,:))-abs(.05*min(FourChan(2,:))) ...
           max(FourChan(2,:))+(.05*max(FourChan(2,:)))])
     yticks([min(FourChan(2,:)) round(avg(2)) max(FourChan(2,:))])
-    cosmo(gca,titl2{2},xlimit2,xtix2,[])
+    ttl(2)=cosmo(gca,titl2{2},xlimit2,xtix2,[]);
 
     ah(3)=subplot(3,2,5);
     plot(FourChan(3,:),'color',color3)
@@ -114,7 +114,7 @@ for file = firstfile:lastfile
     ylim([min(FourChan(3,:))-abs(.01*min(FourChan(3,:))) ...
           max(FourChan(3,:))+(.01*max(FourChan(3,:)))])
     yticks([min(FourChan(3,:)) round(avg(3)) max(FourChan(3,:))])
-    cosmo(gca,titl2{3},xlimit2,xtix2,xtixl2)
+    ttl(3)=cosmo(gca,titl2{3},xlimit2,xtix2,xtixl2);
     
     % Plot sub
     xtixl3 = tensec/Fs;
@@ -126,17 +126,17 @@ for file = firstfile:lastfile
     plot(sub(1,:),'color',color1)
     ylim([4900 5700])
     yticks([5000 5600])
-    cosmo(gca,titl3{1},xlimit3,xtix3,[])
+    ttl(4)=cosmo(gca,titl3{1},xlimit3,xtix3,[]);
 
     ah(5)=subplot(3,2,4);
     plot(sub(2,:),'color',color2)
     movev(ah(5),0.01)
-    cosmo(gca,[],xlimit3,xtix3,[])
+    ttl(5)=cosmo(gca,[],xlimit3,xtix3,[]);
     
     ah(6)=subplot(3,2,6);
     plot(sub(3,:),'color',color3)
     movev(ah(6),0.02)
-    cosmo(gca,[],xlimit3,xtix3,xtixl3)
+    ttl(6)=cosmo(gca,[],xlimit3,xtix3,xtixl3);
     
     tt=supertit(ah([1 4]),sprintf('BIOS Unit2, Minute %d',file));
     movev(tt,0.2)
@@ -150,23 +150,38 @@ for file = firstfile:lastfile
     %    %jumps doesnt exist as a variable, so just ignore it
     %end
 
-    % Save a PDF
-    figdisp(sprintf('file%3.4i',file),[],[],2,[],'epstopdf')
+    keyboard
 
-    if firstfile == lastfile || file == lastfile
-        %if working with 1 file, or working on the last file of a set, don't clf
-    else
-        clf
-    end
+    % FJS adds
+    
+    longticks(gca)
+    delete(tt)
+    delete(ttl)
+    
+    axes(ah(3))
+    xlabel('time [s]')
+    axes(ah(6))
+    xlabel('time [s]')
+    set(titl2,'FontWeight','normal')
+    
+    % Save a PDF
+%    figdisp(sprintf('file%3.4i',file),[],[],2,[],'epstopdf')
+    figdisp([],file,[],2,[],'epstopdf')
+
+    % if firstfile == lastfile || file == lastfile
+    %     %if working with 1 file, or working on the last file of a set, don't clf
+    % else
+    %     clf
+    % end
 end
 
 % Cosmetics
-function cosmo(ax,titl,xlimit,xtix,xtixl)
+function tt=cosmo(ax,titl,xlimit,xtix,xtixl)
 ax.XGrid = 'on';
 ax.YGrid = 'off';
 ax.GridColor = [0 0 0];
 ax.TickLength = [0 0];
-title(titl,'FontSize',14)
+tt=title(titl,'FontSize',14);
 xlim(xlimit)
 xticks(xtix)
 xticklabels(xtixl)

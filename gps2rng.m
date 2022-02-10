@@ -1,5 +1,5 @@
 function varargout=gps2rng(files,meth,xyz,v)
-% [sr,dxyz,st,xyz,v]=GPS2RNG(files,meth,xyz,v)
+% [st,dxyz,sr,xyz,v]=GPS2RNG(files,meth,xyz,v)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -15,9 +15,9 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % OUTPUT:
 %
-% sr           the distance between the timeseries of points and the target
-% dxyz         the GNSS time series, whichever the summary of the files
 % st           the travel time between the points and the target
+% dxyz         the GNSS time series, whichever the summary of the files
+% sr           the distance between the timeseries of points and the target
 % xyz          1x3 matrix with nominal coordinates of the target, in com
 % v            sound speed [m]
 %

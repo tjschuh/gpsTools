@@ -3,6 +3,8 @@ function wav2mat(firstfile,lastfile,rseg,plotver)
 %
 % Load in Acoustic data file, reshape rows,
 % look for any data jumps, and plot the results
+% WORKING VERSION FOR NOW
+% NEEDS TO BE MERGED WITH CHPLOT
 %
 % INPUT:
 %

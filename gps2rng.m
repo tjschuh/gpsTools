@@ -96,6 +96,11 @@ if isempty(xyz)
       [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
     end
     xyz=[dogx dogy dogz];
+% If nonempty, use it and define dogx, dogy, dogz as such
+else
+     dogx = xyz(1);
+     dogy = xyz(2);
+     dogz = xyz(3);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

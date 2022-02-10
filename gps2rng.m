@@ -26,6 +26,7 @@ function varargout=gps2rng(files,meth,xyz,v)
 % gps2rng({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
 % gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'})
 % gps2rng({'Unit2-camp.mat'})
+% [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},[],[2e6 -4.5e6 3e6]);
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
 % Last modified by tschuh-at-princeton.edu 02/10/2022

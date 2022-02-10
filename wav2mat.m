@@ -162,7 +162,7 @@ for file = firstfile%:lastfile
     xlabel('time [s]')
     axes(ah(6))
     xlabel('time [s]')
-    set(titl2,'FontWeight','normal')
+    set(ttl,'FontWeight','normal')
     
     % Save a PDF
 %    figdisp(sprintf('file%3.4i',file),[],[],2,[],'epstopdf')

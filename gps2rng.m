@@ -1,5 +1,5 @@
 function varargout=gps2rng(files,meth,xyz,v)
-% [st,dxyz,sr,xyz,v]=GPS2RNG(files,meth,xyz,v)
+% [dxyz,sr,st,xyz,v]=GPS2RNG(files,meth,xyz,v)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -15,9 +15,9 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % OUTPUT:
 %
-% st           the travel time between the points and the target
 % dxyz         the GNSS time series, whichever the summary of the files
 % sr           the distance between the timeseries of points and the target
+% st           the travel time between the points and the target
 % xyz          1x3 matrix with nominal coordinates of the target, in com
 % v            sound speed [m]
 %
@@ -28,8 +28,10 @@ function varargout=gps2rng(files,meth,xyz,v)
 % gps2rng({'Unit2-camp.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
-% Last modified by tschuh-at-princeton.edu 02/03/2022
-% Last modified by tschuh-at-princeton.edu 02/07/2022
+% Last modified by tschuh-at-princeton.edu 02/10/2022
+
+% need this file: IFILES/TOPOGRAPHY/EARTH/GEBCO/GEBCO2014/GEBCO_2014_1D.nc
+% if you dont have it: xyz=[2e6 -4.5e6 3e6]
 
 % how the possibly multiple receivers will be jointly considered
 defval('meth','ave')
@@ -59,7 +61,7 @@ tixl=datestr(d(1).t(ttix),'HH:MM:SS');
 if length(files)>1
   switch meth
    case 'ave'
-    % more or less one line version of mat2com.m
+    % More or less one line version of mat2com.m
     dxyz=squeeze(nanmean(reshape(cat(1,d(:).xyz),size(d(1).xyz,1),length(d),3),2));
   end
 else
@@ -67,34 +69,41 @@ else
   dxyz=d.xyz;
 end
 
-% If input, use it
+% Default beacon location is empty
 defval('xyz',[])
+% If empty, use either gps2dep or gps2guess to get a location
 if isempty(xyz)
-  % Determine a starting point from the middle section
-  imeth='down'; 
-  switch imeth
-   case 'down'
-    % Put in water depth read off the GPSTRAJECT map
-    depth=5225; 
-    % Just about
-    % lonlat=[291.3001853867659   31.4661752724632];
-    % z=gebco(lonlat(1)-360,lonlat(2));
-    % Handpicked by GINPUT on a plot of dxyz... for DOG1
-    [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
-   case 'guess'
-    % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
-    defval('depth',gebco(68+42/60,-(31+27/60)));
-    % Rather put in a better water depth, so all units return uniform
-    % results, and read off the GPSTRAJECT map
-    depth=5225;
-    msex=[1 3]/4;
-    midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
-    [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
-  end
-  xyz=[dogx dogy dogz];
+    % Determine a starting point from the middle section
+    imeth='down'; 
+    switch imeth
+     case 'down'
+      % Put in water depth read off the GPSTRAJECT map
+      depth=5225; 
+      % Just about
+      % lonlat=[291.3001853867659   31.4661752724632];
+      % z=gebco(lonlat(1)-360,lonlat(2));
+      % Handpicked by GINPUT on a plot of dxyz... for DOG1
+      [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
+     case 'guess'
+      % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
+      defval('depth',gebco(68+42/60,-(31+27/60)));
+      % Rather put in a better water depth, so all units return uniform
+      % results, and read off the GPSTRAJECT map
+      depth=5225;
+      msex=[1 3]/4;
+      midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
+      [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
+    end
+    xyz=[dogx dogy dogz];
+% If nonempty, use it and define dogx, dogy, dogz as such
+else
+    dogx = xyz(1);
+    dogy = xyz(2);
+    dogz = xyz(3);
 end
 
-% This is the forward model %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This is the forward model
 % calculate slant range between ship and beacon for each second in meters
 sr=sqrt((dxyz(:,1)-dogx).^2+(dxyz(:,2)-dogy).^2+(dxyz(:,3)-dogz).^2);
 % calculate slant time from slant range and v [s]
@@ -105,7 +114,7 @@ st = sr./v;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % optional output
-varns={st,dxyz,sr,xyz,v};
+varns={dxyz,sr,st,xyz,v};
 varargout=varns(1:nargout);
 
 % Make a plot if you don't want output
@@ -164,4 +173,3 @@ if nargout==0
   % save figure as pdf
   figdisp([],fname,[],2,[],'epstopdf')
 end
-

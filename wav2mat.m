@@ -36,6 +36,7 @@ mas = 1;
 % Moving average left and right in units of samples
 maslr = ([mas mas]/2)*Fs;
 
+% need to fix
 for file = firstfile%:lastfile
 %    disp(sprintf('Working on file %3.4i (%3.4i of %3.4i)',file,file-firstfile+1,lastfile-firstfile+1))
     % Open file, turn it into matrix, and then
@@ -78,8 +79,9 @@ for file = firstfile%:lastfile
         avg(i) = mean(FourChan(i,:));
     end
 
-    % Open a figure
-    f=figure;
+    % NEVER Open a figure ALWAYS overwrite so you can finetune hundreds
+    % of times
+    f=figure(1); clf
     f.Position = [250 500 1050 550];
     
     % Colors
@@ -118,6 +120,7 @@ for file = firstfile%:lastfile
     
     % Plot sub
     xtixl3 = tensec/Fs;
+    % These make no sense
     xtix3 = (bot-lowbound):Fs:((10*Fs)-1-(upbound-top));
     xlimit3 = [0 rseg*Fs];
     titl3 = {rseg + " Second Segment"};
@@ -150,24 +153,32 @@ for file = firstfile%:lastfile
     %    %jumps doesnt exist as a variable, so just ignore it
     %end
 
-    keyboard
-
     % FJS adds
     
-    longticks(gca)
+    longticks(ah)
     delete(tt)
-    delete(ttl)
     
     axes(ah(3))
     xlabel('time [s]')
     axes(ah(6))
     xlabel('time [s]')
-    set(ttl,'FontWeight','normal')
+    set(ttl,'FontWeight','normal','FontSize',6)
+    %delete(ttl)
+    
+    moveh(ah(1:3),.03)
+    
+    % Must equalize axes - early on or after the fact but not explicitly
+    % in the middle
+    ah(5).YLim=ah(2).YLim;
+    ah(5).YTick=ah(2).YTick;
+    ah(6).YLim=ah(3).YLim;
+    ah(6).YTick=ah(3).YTick;
     
     % Save a PDF
 %    figdisp(sprintf('file%3.4i',file),[],[],2,[],'epstopdf')
     figdisp([],file,[],2,[],'epstopdf')
 
+    keyboard
     % if firstfile == lastfile || file == lastfile
     %     %if working with 1 file, or working on the last file of a set, don't clf
     % else

@@ -26,8 +26,10 @@ function varargout = rng2pos(dxyz,st,vg,vn,xyzg,xyzn)
 % [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'});
 % [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},...
 %   [],[2e6 -4.5e6 3e6]);
+% for i=1:10    
 % [sol,hst,rmse]=rng2pos(dxyz,st,vg,[],xyzg,[]);
-%
+% end
+%    
 % Originally written by tschuh-at-princeton.edu, 02/07/2022
 % Last modified by fjsimons-at-princeton.edu, 02/08/2022
 % Last modified by tschuh-at-princeton.edu, 02/10/2022
@@ -51,6 +53,7 @@ vg = vg + vn;
 % generate a random decimal value between -10 cm and 10 cm
 defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000])
 
+% take magnitude of xyzn
 mag = sqrt(xyzn(1)^2 + xyzn(2)^2 + xyzn(3)^2);
 
 % add noise to xyzg
@@ -65,7 +68,10 @@ hsr = sqrt((dxyz(:,1)-sol(1)).^2 + (dxyz(:,2)-sol(2)).^2 + (dxyz(:,3)-sol(3)).^2
 hst = hsr./vg;
 rmse = norm(st(~isnan(st)) - hst(~isnan(hst)));
 
-% plot rmse with a color bar and plot vn vs mag(xyzn)
+% plot rmse with a color bar and vn on x-axis, mag(xyzn) on y-axis
+% this works, but we next want to complete inversion part to reduce
+% rmse values and do this again
+% may also want to change how the noise is being incorporated, I may have done this wrong
 sz = 50;
 scatter(vn,mag,sz,rmse,'filled')
 a = colorbar;

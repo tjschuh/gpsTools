@@ -108,6 +108,7 @@ pl(1)=plot(-1,-1,'b-');
 pl(2)=plot(-1,-1,'r-');
 hold off
 legs=legend(pl,'GNSS','Acoustic','FontSize',6,'Location','northeast');
+
 moveh(legs,0.101)
 movev(legs,0.01)
 

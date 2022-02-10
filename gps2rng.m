@@ -1,5 +1,5 @@
 function varargout=gps2rng(files,meth,xyz,v)
-% [dxyz,sr,st,xyz,v]=GPS2RNG(files,meth,xyz,v)
+% [sr,dxyz,st,xyz,v]=GPS2RNG(files,meth,xyz,v)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -15,8 +15,8 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % OUTPUT:
 %
-% dxyz         the GNSS time series, whichever the summary of the files
 % sr           the distance between the timeseries of points and the target
+% dxyz         the GNSS time series, whichever the summary of the files
 % st           the travel time between the points and the target
 % xyz          1x3 matrix with nominal coordinates of the target, in com
 % v            sound speed [m]
@@ -29,6 +29,7 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
 % Last modified by tschuh-at-princeton.edu 02/10/2022
+% Last modified by fjsimons-at-princeton.edu 02/10/2022
 
 % need this file: IFILES/TOPOGRAPHY/EARTH/GEBCO/GEBCO2014/GEBCO_2014_1D.nc
 % if you dont have it: xyz=[2e6 -4.5e6 3e6]
@@ -95,11 +96,6 @@ if isempty(xyz)
       [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
     end
     xyz=[dogx dogy dogz];
-% If nonempty, use it and define dogx, dogy, dogz as such
-else
-    dogx = xyz(1);
-    dogy = xyz(2);
-    dogz = xyz(3);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -114,7 +110,7 @@ st = sr./v;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % optional output
-varns={dxyz,sr,st,xyz,v};
+varns={st,dxyz,sr,xyz,v};
 varargout=varns(1:nargout);
 
 % Make a plot if you don't want output

@@ -1,4 +1,4 @@
-function varargout = rng2pos(dxyz,st,vg,xyzg)
+function varargout = rng2pos(dxyz,st,vg,vn,xyzg,xyzn)
 % [sol,hst,rmse] = RNG2POS(dxyz,st,vg,vn,xyzg,xyzn)
 %
 % Given Precise Point Position time series of a certain configuration
@@ -36,14 +36,26 @@ function varargout = rng2pos(dxyz,st,vg,xyzg)
 % Last modified by fjsimons-at-princeton.edu, 02/08/2022
 % Last modified by tschuh-at-princeton.edu, 02/11/2022
 
-% Problem Flow:
-% compute hsr and hst from inital guess
-% rmse=norm(st - hst)
-% if rmse is bad, refine sol through least-squares inversion
-% sol=sol+something
-% use sol to get updated hst
-% rmse=norm(st-hst)
-% repeat if needed
+% Idea Behind Code:
+% given a true beacon location using a forward model
+% guess a perturbed location and perturbed velocity
+% and use the true slant times to see just how bad
+% our perturbed guesses were
+
+% need to incorporate for loop in code
+% and only make plot at end
+% need to add mode where no plot is made
+% and values are stored in output matrix
+
+% need to make 4 plots:
+% mag(xyz) vs v
+% x vs y
+% x vs z
+% y vs z
+
+% add true noise to both slant times and dxyz positions
+
+% change trajectory of ship and see if results vary
 
 % need to get rid of rows with NaNs
 dxyz(any(isnan(dxyz),2),:)=[];
@@ -51,22 +63,23 @@ st(any(isnan(st),2),:)=[];
 
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
+v0 = vg;
 
 % generate a random decimal value between -10 m/s and 10 m/s
-%defval('vn',randi([-10 9]) + rand)
-%defval('vn',0)
+defval('vn',randi([-10 9]) + rand)
+
 % add noise to vg
-%vg = vg + vn;
+vg = vg + vn;
 
 % generate a random decimal value between -10 cm and 10 cm
-%defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000])
+defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000])
 
 % take magnitude of xyzn
-%mag = sqrt(xyzn(1)^2 + xyzn(2)^2 + xyzn(3)^2);
+mag = sqrt(xyzn(1)^2 + xyzn(2)^2 + xyzn(3)^2);
 
 % add noise to dxyz
 %dxyz = dxyz + xyzn;
-%xyzg = xyzg + xyzn;
+xyzg = xyzg + xyzn;
 
 % Solution begins with the guess
 sol = xyzg;
@@ -75,28 +88,44 @@ sol = xyzg;
 hsr = sqrt((dxyz(:,1)-sol(1)).^2 + (dxyz(:,2)-sol(2)).^2 + (dxyz(:,3)-sol(3)).^2);
 % simple forward model (could have used GPS2RNG again, more complicated forward models, etc.)
 hst = hsr./vg;
-rmse = norm(st - hst)
+rmse = norm(st - hst);
 
 % plot rmse with a color bar and vn on x-axis, mag(xyzn) on y-axis
 % this works, but we next want to complete inversion part to reduce
 % rmse values and do this again
 % may also want to change how the noise is being incorporated, I may have done this wrong
-% sz = 50;
-% scatter(vn,mag,sz,rmse,'filled')
-% a = colorbar;
-% a.Label.String = 'rmse';
-% a.FontSize = 11;
-% xlim([-10 10])
-% ylim([0 0.2])
-% grid on
-% longticks
-% xlabel('Velocity Noise [m/s]')
-% ylabel('XYZ Noise [m]')
-% hold on
+sz = 50;
+scatter(vn,mag,sz,rmse,'filled')
+a = colorbar;
+a.Label.String = 'rmse [s]';
+a.FontSize = 11;
+xlim([-10 10])
+ylim([0 0.2])
+grid on
+longticks
+xlabel(sprintf('velocity perturbation from %i [m/s]',v0))
+%ylabel(sprintf('distance from truth [%i %i %i] [m]',x0,y0,z0))
+ylabel(sprintf('distance from truth [m]'))
+hold on
 
-% return
+% optional output
+varns={sol,hst,rmse};
+varargout=varns(1:nargout);
+
+return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% inversion part works, but will probably become a different function
+
+% Inversion Problem Flow:
+% compute hsr and hst from inital guess
+% rmse=norm(st - hst)
+% if rmse is bad, refine sol through least-squares inversion
+% sol=sol+something
+% use sol to get updated hst
+% rmse=norm(st-hst)
+% repeat if needed
 
 % try again
 % Now the inversion needs to start

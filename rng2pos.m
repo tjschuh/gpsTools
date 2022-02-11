@@ -56,8 +56,8 @@ defval('xyzn',[(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1
 % take magnitude of xyzn
 mag = sqrt(xyzn(1)^2 + xyzn(2)^2 + xyzn(3)^2);
 
-% add noise to xyzg
-xyzg = xyzg + xyzn;
+% add noise to dxyz
+dxyz = dxyz + xyzn;
 
 % Solution begins with the guess
 sol = xyzg;

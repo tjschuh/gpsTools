@@ -29,7 +29,7 @@ function varargout=gps2rng(files,meth,xyz,v)
 % [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},[],[2e6 -4.5e6 3e6]);
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
-% Last modified by tschuh-at-princeton.edu 02/10/2022
+% Last modified by tschuh-at-princeton.edu 02/14/2022
 % Last modified by fjsimons-at-princeton.edu 02/10/2022
 
 % need this file: IFILES/TOPOGRAPHY/EARTH/GEBCO/GEBCO2014/GEBCO_2014_1D.nc
@@ -53,7 +53,10 @@ if length(files)>1
 end
 
 % combine all datasets into 1 large matrix with no plotting
+% change this if you arent using PPP/RTK data
+% and rather synthetic ship location data
 [d,tmax]=mat2mod(files);
+%load(files{1})
 
 % Tick marks
 ntix=7;

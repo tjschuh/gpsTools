@@ -1,4 +1,4 @@
-function gps2dis(files,protype)
+%function gps2dis(files,protype)
 % GPS2DIS(files,protype)
 %
 % Given Precise Point Position time series of four different units,
@@ -16,10 +16,10 @@ function gps2dis(files,protype)
 %
 % Last modified by fjsimons-at-princeton.edu, 02/08/2022
 
-NOT DONE
+%NOT DONE
 
 
-function gps2plt(unit1file,unit2file,unit3file,unit4file)
+function gps2dis(unit1file,unit2file,unit3file,unit4file)
 % GPS2PLT(unit1file,unit2file,unit3file,unit4file)
 %
 % plot all 4 units on one figure and compare height, distance 
@@ -41,9 +41,18 @@ function gps2plt(unit1file,unit2file,unit3file,unit4file)
 % currently statistics (correlation coeff, ployfit, rms, std)
 % are computed using all data including greyed out parts
 
+files = {unit1file,unit2file,unit3file,unit4file};
+
 % use mat2mod to convert data to all be same time spans with no time gaps
-[d1,d2,d3,d4] = mat2mod(unit1file,unit2file,unit3file,unit4file);
+[d,tmax] = mat2mod(files);
 [~,fname,~] = fileparts(unit1file);
+
+d1 = d(1);
+d2 = d(2);
+d3 = d(3);
+d4 = d(4);
+
+
 
 % plotting all 4 units together in motion
 % not neccessary right now
@@ -401,7 +410,7 @@ plot(d4.t(1:int3:end-2),baz4(1:int3:end),'color',[0.7 0.7 0.7])
 tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d1.t(1)),datestr(d1.t(end))));
 movev(tt,0.3)
 
-a = annotation('textbox',[0.465 0.085 0 0],'String',['leg2'],'FitBoxToText','on');
+a = annotation('textbox',[0.465 0.085 0 0],'String',['camp'],'FitBoxToText','on');
 a.FontSize = 12;
 
 figdisp(sprintf('all4plt-%s',fname),[],'',2,[],'epstopdf')

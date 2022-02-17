@@ -26,6 +26,7 @@ function varargout = gps2inv(st,d,vg,xyzg)
 
 % will clean this up later
 % just need working version for talk
+% add noise to ship locations [+/- 10 cm]
 
 % need to get rid of rows with NaNs
 % need to combine d.t and d.xyz into 1 matrix to remove all NaN rows
@@ -42,9 +43,13 @@ defval('xyzg',[2e6 -4.5e6 3e6])
 v0 = vg;
 xyz0 = xyzg;
 
-xn = -0.1:0.01:0.1;
-yn = -0.1:0.01:0.1;
-zn = -0.1:0.01:0.1;
+% mesh/grid
+% need to make these constants
+% 0.01 --> 0.005
+int = 0.01;
+xn = -0.1:int:0.1;
+yn = -0.1:int:0.1;
+zn = -0.1:int:0.1;
 
 xyzmat = zeros(length(xn)*length(yn)*length(zn),4);
 counter = 1;
@@ -72,32 +77,76 @@ for i=1:length(xn)
     end
 end
 
+% find what xn,yn,zn min(rmse) corresponds to
+minerr = xyzmat(find(xyzmat(:,4) == min(xyzmat(:,4))),:);
+
 % plotting
 f=figure;
 f.Position = [675 281 955 680];
 sz=50;
 
-scatter3(xyzmat(:,1),xyzmat(:,2),xyzmat(:,3),sz,xyzmat(:,4),'filled')
-% change this to cm
-xlabel(sprintf('x distance from truth [m]'))
-ylabel(sprintf('y distance from truth [m]'))
-zlabel(sprintf('z distance from truth [m]'))
-%title(sprintf(''))
+scatter3(100*xyzmat(:,1),100*xyzmat(:,2),100*xyzmat(:,3),sz,1000*xyzmat(:,4),'filled')
+xlabel(sprintf('x distance from truth [cm]'))
+ylabel(sprintf('y distance from truth [cm]'))
+zlabel(sprintf('z distance from truth [cm]'))
+title(sprintf('Quality of Inversion, v_{diff} = %g m/s\nxyz_{truth} = [%g m %g m %g m], min = [%g cm %g cm %g cm %g ms]',vg-1500,xyz0(1),xyz0(2),xyz0(3),100*minerr(1),100*minerr(2),100*minerr(3),1000*minerr(4)))
 a = colorbar;
-a.Label.String = 'rmse [s]';
+a.Label.String = 'rmse [ms]';
 a.FontSize = 11;
-xlim([-0.11 0.11])
-ylim([-0.11 0.11])
-zlim([-0.11 0.11])
+xlim([-11 11])
+ylim([-11 11])
+zlim([-11 11])
 grid on
 longticks
-% add v0 label
-% add xyz0/truth label
-% also find min rmse and what xn,yn,zn it corresponds to
 
-% also need to plot some slices from the cube plot
+figdisp(sprintf('gps2inv-cube'),[],'',2,[],'epstopdf')
 
-% also need to plot a histogram of the rmse values
+% also need to plot slice at z = 0 because we know ocean depth very well
+xymat = xyzmat(find(xyzmat(:,3) == 0),:);
+
+g=figure;
+g.Position = [675 281 955 680];
+
+scatter(100*xymat(:,1),100*xymat(:,2),sz,1000*xymat(:,4),'filled')
+xlabel(sprintf('x distance from truth [cm]'))
+ylabel(sprintf('y distance from truth [cm]'))
+title(sprintf('Quality of Inversion, v_{diff} = %g m/s\nslice at z = 0 cm',vg-1500))
+a = colorbar;
+a.Label.String = 'rmse [ms]';
+a.FontSize = 11;
+xlim([-11 11])
+ylim([-11 11])
+grid on
+longticks
+
+figdisp(sprintf('gps2inv-slice'),[],'',2,[],'epstopdf')
+
+% plot only rows where rmse < something
+thresh = 0.001;
+xyzmatell = xyzmat(find(xyzmat(:,4) <= thresh),:);
+
+h=figure;
+h.Position = [675 281 955 680];
+
+scatter3(100*xyzmatell(:,1),100*xyzmatell(:,2),100*xyzmatell(:,3),sz,1000*xyzmatell(:,4),'filled')
+xlabel(sprintf('x distance from truth [cm]'))
+ylabel(sprintf('y distance from truth [cm]'))
+zlabel(sprintf('z distance from truth [cm]'))
+title(sprintf('rmse < %g ms, v_{diff} = %g m/s\nxyz_{truth} = [%g m %g m %g m], min = [%g cm %g cm %g cm %g ms]',1000*thresh,vg-1500,xyz0(1),xyz0(2),xyz0(3),100*minerr(1),100*minerr(2),100*minerr(3),1000*minerr(4)))
+a = colorbar;
+a.Label.String = 'rmse [ms]';
+a.FontSize = 11;
+xlim([-11 11])
+ylim([-11 11])
+zlim([-11 11])
+grid on
+longticks
+
+figdisp(sprintf('gps2inv-ellipsoid'),[],'',2,[],'epstopdf')
+
+% need to plot a histogram of the rmse values
+% not centered on 0 because rmse >= 0
+%histogram(xyzmat(:,4))
 
 % optional output
 varns={xyzmat};

@@ -37,7 +37,7 @@ st(any(isnan(st),2),:)=[];
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
-% guess the correct 
+% guess the correct location
 defval('xyzg',[2e6 -4.5e6 3e6])
 
 v0 = vg;
@@ -50,6 +50,11 @@ int = 0.01;
 xn = -0.1:int:0.1;
 yn = -0.1:int:0.1;
 zn = -0.1:int:0.1;
+
+int = 1;
+xn = -10:int:10;
+yn = -10:int:10;
+zn = -10:int:10;
 
 xyzmat = zeros(length(xn)*length(yn)*length(zn),4);
 counter = 1;
@@ -81,10 +86,9 @@ end
 minerr = xyzmat(find(xyzmat(:,4) == min(xyzmat(:,4))),:);
 
 % plotting
-f=figure;
-f.Position = [675 281 955 680];
+figure(1);
+%ah(1)=subplot(2,2,[1 3]);
 sz=50;
-
 scatter3(100*xyzmat(:,1),100*xyzmat(:,2),100*xyzmat(:,3),sz,1000*xyzmat(:,4),'filled')
 xlabel(sprintf('x distance from truth [cm]'))
 ylabel(sprintf('y distance from truth [cm]'))
@@ -93,20 +97,20 @@ title(sprintf('Quality of Inversion, v_{diff} = %g m/s\nxyz_{truth} = [%g m %g m
 a = colorbar;
 a.Label.String = 'rmse [ms]';
 a.FontSize = 11;
-xlim([-11 11])
-ylim([-11 11])
-zlim([-11 11])
+xlim([110*min(xn) 110*max(xn)])
+ylim([110*min(yn) 110*max(yn)])
+zlim([110*min(zn) 110*max(zn)])
 grid on
 longticks
 
-figdisp(sprintf('gps2inv-cube'),[],'',2,[],'epstopdf')
+%figdisp(sprintf('gps2inv-cube'),[],'',2,[],'epstopdf')
+%close
 
 % also need to plot slice at z = 0 because we know ocean depth very well
 xymat = xyzmat(find(xyzmat(:,3) == 0),:);
 
 g=figure;
-g.Position = [675 281 955 680];
-
+%ah(2)=subplot(2,2,2);
 scatter(100*xymat(:,1),100*xymat(:,2),sz,1000*xymat(:,4),'filled')
 xlabel(sprintf('x distance from truth [cm]'))
 ylabel(sprintf('y distance from truth [cm]'))
@@ -114,39 +118,41 @@ title(sprintf('Quality of Inversion, v_{diff} = %g m/s\nslice at z = 0 cm',vg-15
 a = colorbar;
 a.Label.String = 'rmse [ms]';
 a.FontSize = 11;
-xlim([-11 11])
-ylim([-11 11])
+xlim([110*min(xn) 110*max(xn)])
+ylim([110*min(yn) 110*max(yn)])
 grid on
 longticks
 
-figdisp(sprintf('gps2inv-slice'),[],'',2,[],'epstopdf')
+%figdisp(sprintf('gps2inv-slice'),[],'',2,[],'epstopdf')
+%close
 
 % plot only rows where rmse < something
-thresh = 0.001;
-xyzmatell = xyzmat(find(xyzmat(:,4) <= thresh),:);
+thresh = 15;
+xyzmatell = xyzmat(find(xyzmat(:,4) <= (thresh/1000)),:);
 
+%ah(3)=subplot(2,2,4);
 h=figure;
-h.Position = [675 281 955 680];
-
 scatter3(100*xyzmatell(:,1),100*xyzmatell(:,2),100*xyzmatell(:,3),sz,1000*xyzmatell(:,4),'filled')
 xlabel(sprintf('x distance from truth [cm]'))
 ylabel(sprintf('y distance from truth [cm]'))
 zlabel(sprintf('z distance from truth [cm]'))
-title(sprintf('rmse < %g ms, v_{diff} = %g m/s\nxyz_{truth} = [%g m %g m %g m], min = [%g cm %g cm %g cm %g ms]',1000*thresh,vg-1500,xyz0(1),xyz0(2),xyz0(3),100*minerr(1),100*minerr(2),100*minerr(3),1000*minerr(4)))
+title(sprintf('rmse < %g ms, v_{diff} = %g m/s\nxyz_{truth} = [%g m %g m %g m], min = [%g cm %g cm %g cm %g ms]',thresh,vg-1500,xyz0(1),xyz0(2),xyz0(3),100*minerr(1),100*minerr(2),100*minerr(3),1000*minerr(4)))
 a = colorbar;
 a.Label.String = 'rmse [ms]';
 a.FontSize = 11;
-xlim([-11 11])
-ylim([-11 11])
-zlim([-11 11])
+xlim([110*min(xn) 110*max(xn)])
+ylim([110*min(yn) 110*max(yn)])
+zlim([110*min(zn) 110*max(zn)])
 grid on
 longticks
 
-figdisp(sprintf('gps2inv-ellipsoid'),[],'',2,[],'epstopdf')
+%figdisp(sprintf('gps2inv-ellipsoid'),[],'',2,[],'epstopdf')
+%close
 
 % need to plot a histogram of the rmse values
 % not centered on 0 because rmse >= 0
 %histogram(xyzmat(:,4))
+% need to get acoustic curve from dog2mat.m
 
 % optional output
 varns={xyzmat};

@@ -1,7 +1,11 @@
 function varargout = gps2syn(st,d,vg,xyzg,expnum)
 % GPS2SYN(st,d,vg,xyzg,expnum)
 %
-%
+% This kinda works, plots st and hst, diff(st-hst) and bestfit line
+% (eventually DOP), ship trajectory with C-DOG location, and histogram of
+% residuals for a given distance (x,y,z) from true location. Records if
+% residuals for those perturbations are "normal" with either solid or empty
+% circles on running x,y,z 2D plots. Does this for x number of trials (expnum)
 %
 % INPUT:
 %
@@ -36,23 +40,23 @@ v0 = vg;
 xyz0 = xyzg;
 
 % number of trials to run
-defval('expnum',1000)
+defval('expnum',100)
 
-xyzmat = zeros(expnum,4);
-
-figure;
 sz=20;
 
-for i=1:50
+for i=1:expnum
     % generate a random decimal value between -10 cm and 10 cm
     xyzn = [(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000];
     sol = xyz0 + xyzn;
     hsr = sqrt((d.xyz(:,1)-sol(1)).^2 + (d.xyz(:,2)-sol(2)).^2 + (d.xyz(:,3)-sol(3)).^2);
     hst = hsr./v0;
     %rmse = norm(st - hst);
-    res = st-hst;
+    differ = st-hst;
 
-    ah(1)=subplot(3,3,[1 2]);
+    f=figure;
+    f.Position = [250 500 900 500];
+
+    ah(1)=subplot(3,4,[1 2]);
     p(1)=plot(d.t,st,'LineWidth',1.5);
     hold on
     p(2)=plot(d.t,hst,'LineWidth',1.5);
@@ -60,19 +64,34 @@ for i=1:50
     cosmot(d.t)
     ylabel('slant range time [s]')
 
-    ah(2)=subplot(3,3,[4 5]);
-    p(3)=plot(d.t,res*1e6,'LineWidth',1.5);
-    cosmot(d.t)
+    ah(2)=subplot(3,4,[3 4]);
+    %trajectory of ship
+
+    ah(3)=subplot(3,4,[5 6]);
+    %differ(any(isnan(differ),2),:) = [];
+    time = d.t;
+    ind = isnan(differ);
+    differ(ind) = [];
+    time(ind) = [];
+    pf = polyfit([1:length(differ)]',differ,1);
+    a = pf(1)*1e6; b = pf(2);
+    bfline = (a/1e6).*[1:length(differ)]' + b;
+    res = bfline - differ;
+    p(3)=plot(time,bfline*1e6,'LineWidth',1.5);
+    hold on
+    p(4)=plot(time,differ*1e6,'LineWidth',1.5);
+    hold off
+    cosmot(time)
     ylabel('slant range time [\mus]')
 
-    ah(3)=subplot(3,3,[7 8]);
+    ah(4)=subplot(3,4,[7 8]);
     nbins=round((max(res*1e6)-min(res*1e6))/(2*iqr(res*1e6)*(length(res*1e6))^(-1/3)));
     % calculate goodness of fit (gof) compared to a normal distribution
-    %[~,~,stats]=chi2gof(res,'NBins',nbins);
+    [~,~,stats]=chi2gof(res,'NBins',nbins);
     % divide chi squared by degrees of freedom to reduce to 1 DoF
     % with 1 Dof, chi squared <= 4 signifies ~90% chance data are normal
     % will make red curve dotted if gof > 4
-    %gof=stats.chi2stat/stats.df;
+    gof=stats.chi2stat/stats.df;
     % Calculate histogram
     [yvals,edges]=histcounts(res*1e6,nbins);
     % Calculate bin centers 
@@ -83,33 +102,71 @@ for i=1:50
     longticks
     grid on
     xlabel('residuals [\mus]')
-    ylabel('counts')
+    hold on
+    pd = fitdist(res*1e6,'Normal');
+    xvals = b.XData; 
+    yvals = pdf(pd,xvals);
+    area = sum(b.YData)*diff(b.XData(1:2));
+    lain = plot(xvals,yvals*area,'r','LineWidth',2);
+    thresh = 100;
+    if gof > thresh
+        lain.LineStyle = '--';
+    end
+    hold off
+    
+    ah(5)=subplot(3,4,[9 10]);
+    %pdop
+    %A = [(d.xyz(:,1)-sol(1)) (d.xyz(:,2)-sol(2)) (d.xyz(:,3)-sol(3))]./hsr(:);
+    %A = [A -ones([length(A) 1])];
+    %keyboard
 
-    ah(4)=subplot(3,3,3);
-    scatter(100*xyzn(1),100*xyzn(2),sz,'filled')
+    tt=supertit(ah([1 2]),sprintf('Distance from Truth = [%g cm %g cm %g cm]',100*xyzn(1),100*xyzn(2),100*xyzn(3)));
+
+    figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
+    close(f)
+
+    if i == 1
+        g=figure;
+        g.Position = [250 500 300 600];
+    end
+    
+    ahh(4)=subplot(3,1,1);
+    if gof > thresh
+        scatter(100*xyzn(1),100*xyzn(2),sz)
+    else
+        scatter(100*xyzn(1),100*xyzn(2),sz,'filled')
+    end
     hold on
     cosmoxyz()
     xlabel('perturbations in x [cm]')
     ylabel('perturbations in y [cm]')
 
-    ah(5)=subplot(3,3,6);
-    scatter(100*xyzn(1),100*xyzn(3),sz,'filled')
+    ahh(5)=subplot(3,1,2);
+    if gof > thresh
+        scatter(100*xyzn(1),100*xyzn(3),sz)
+    else
+        scatter(100*xyzn(1),100*xyzn(3),sz,'filled')
+    end
     hold on
     cosmoxyz()
     xlabel('perturbations in x [cm]')
     ylabel('perturbations in z [cm]')
 
-    ah(6)=subplot(3,3,9);
-    scatter(100*xyzn(2),100*xyzn(3),sz,'filled')
+    ahh(6)=subplot(3,1,3);
+    if gof > thresh
+        scatter(100*xyzn(2),100*xyzn(3),sz)
+    else
+        scatter(100*xyzn(2),100*xyzn(3),sz,'filled')
+    end
     hold on
     cosmoxyz()
     xlabel('perturbations in y [cm]')
     ylabel('perturbations in z [cm]')
 
-    %delete(ah(1:3))
 end
 
-%keyboard
+figdisp(sprintf('synthetic'),[],[],2,[],'epstopdf')
+%close
 
 function cosmot(t)
 xlim([t(1) t(end)])

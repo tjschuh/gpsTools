@@ -1,7 +1,7 @@
 function varargout = gps2syn(st,d,vg,xyzg,expnum)
 % GPS2SYN(st,d,vg,xyzg,expnum)
 %
-% This kinda works, plots st and hst, diff(st-hst) and bestfit line
+% This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
 % residuals for a given distance (x,y,z) from true location. Records if
 % residuals for those perturbations are "normal" with either solid or empty
@@ -19,22 +19,25 @@ function varargout = gps2syn(st,d,vg,xyzg,expnum)
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% [st,xyz,v] = gps2fwd(d,tmax,[2e6 -4.5e6 3e6],1500);
+% [st,xyz,v] = gps2fwd(d,tmax,[1.977967 -5.073198 3.3101016]*1e6,1500);
 % gps2syn(st,d,v,xyz,expnum);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
+% Last modified by tschuh-at-princeton.edu, 03/01/2022
 
 % need to get rid of rows with NaNs
 % need to combine d.t and d.xyz into 1 matrix to remove all NaN rows
 %d.t(any(isnan(d.t),2),:)=[];
-d.xyz(any(isnan(d.xyz),2),:)=NaN;
+d.x(any(isnan(d.x),2),:)=NaN;
+d.y(any(isnan(d.y),2),:)=NaN;
+d.z(any(isnan(d.z),2),:)=NaN;
 st(any(isnan(st),2),:)=NaN;
 
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
 % guess the correct location
-defval('xyzg',[2e6 -4.5e6 3e6])
+defval('xyzg',[1.977967 -5.073198 3.3101016]*1e6)
 
 v0 = vg;
 xyz0 = xyzg;
@@ -48,7 +51,7 @@ for i=1:expnum
     % generate a random decimal value between -10 cm and 10 cm
     xyzn = [(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000];
     sol = xyz0 + xyzn;
-    hsr = sqrt((d.xyz(:,1)-sol(1)).^2 + (d.xyz(:,2)-sol(2)).^2 + (d.xyz(:,3)-sol(3)).^2);
+    hsr = sqrt((d.x-sol(1)).^2 + (d.y-sol(2)).^2 + (d.z-sol(3)).^2);
     hst = hsr./v0;
     %rmse = norm(st - hst);
     differ = st-hst;
@@ -66,6 +69,30 @@ for i=1:expnum
 
     ah(2)=subplot(3,4,[3 4]);
     %trajectory of ship
+    skp=1000;
+    zex=d.utme(1:skp:end);
+    zwi=d.utmn(1:skp:end);
+    refx=min(d.utme);
+    refy=min(d.utmn);
+    sclx=1000;
+    scly=1000;
+    plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
+    hold on
+    scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
+                   'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
+    wgs84 = wgs84Ellipsoid('meter');
+    [lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
+    [dogx,dogy,~] = deg2utm(lat,mod(lon,360));
+    box on
+    grid on
+    longticks([],2)
+    xl(2)=xlabel('easting (km)');
+    yl(2)=ylabel('northing (km)');
+    openup(ah(2),5,10);
+    openup(ah(2),6,10);
+    scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
+               'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
+    hold off
 
     ah(3)=subplot(3,4,[5 6]);
     %differ(any(isnan(differ),2),:) = [];
@@ -84,13 +111,13 @@ for i=1:expnum
     cosmot(time)
     ylabel('slant range time [\mus]')
 
-    ah(4)=subplot(3,4,[7 8]);
+    ah(4)=subplot(3,4,[7 8 11 12]);
     nbins=round((max(res*1e6)-min(res*1e6))/(2*iqr(res*1e6)*(length(res*1e6))^(-1/3)));
     % calculate goodness of fit (gof) compared to a normal distribution
     [~,~,stats]=chi2gof(res,'NBins',nbins);
     % divide chi squared by degrees of freedom to reduce to 1 DoF
     % with 1 Dof, chi squared <= 4 signifies ~90% chance data are normal
-    % will make red curve dotted if gof > 4
+    % will make red curve dotted if gof > 100
     gof=stats.chi2stat/stats.df;
     % Calculate histogram
     [yvals,edges]=histcounts(res*1e6,nbins);
@@ -115,15 +142,15 @@ for i=1:expnum
     hold off
     
     ah(5)=subplot(3,4,[9 10]);
-    %pdop
-    %A = [(d.xyz(:,1)-sol(1)) (d.xyz(:,2)-sol(2)) (d.xyz(:,3)-sol(3))]./hsr(:);
+    %dop
+    %A = [(d.x-sol(1)) (d.y-sol(2)) (d.z-sol(3))]./hsr(:);
     %A = [A -ones([length(A) 1])];
     %keyboard
 
     tt=supertit(ah([1 2]),sprintf('Distance from Truth = [%g cm %g cm %g cm]',100*xyzn(1),100*xyzn(2),100*xyzn(3)));
 
-    figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
-    close(f)
+    %figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
+    %close(f)
 
     if i == 1
         g=figure;
@@ -165,7 +192,7 @@ for i=1:expnum
 
 end
 
-figdisp(sprintf('synthetic'),[],[],2,[],'epstopdf')
+%figdisp(sprintf('synthetic'),[],[],2,[],'epstopdf')
 %close
 
 function cosmot(t)

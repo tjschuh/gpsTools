@@ -19,19 +19,20 @@ function varargout = gps2fwd(d,tmax,xyz,v)
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% [st,xyz,v] = gps2fwd(d,tmax,[2e6 -4.5e6 3e6],1500);
+% [st,xyz,v] = gps2fwd(d,tmax,[1.977967 -5.073198 3.3101016]*1e6,1500);
 %
 % Originally written by tschuh-at-princeton.edu, 02/16/2022
+% Last modified by tschuh-at-princeton.edu, 03/01/2022
 
 % choose a beacon location at center of our real "cross" trajectory [m]
-defval('xyz',[2e6 -4.5e6 3e6])
+defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
 
 % constant sound speed profile for now [m/s]
 defval('v',1500)
 
 % This is the forward model
 % calculate slant range between ship and beacon for each second in meters
-sr = sqrt((d.xyz(:,1)-xyz(1)).^2 + (d.xyz(:,2)-xyz(2)).^2 + (d.xyz(:,3)-xyz(3)).^2);
+sr = sqrt((d.x-xyz(1)).^2 + (d.y-xyz(2)).^2 + (d.z-xyz(3)).^2);
 % calculate slant time from slant range and v [s]
 st = sr./v;
 % In the proper version, it's through complicated velocity, and refraction

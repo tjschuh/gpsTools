@@ -19,7 +19,7 @@ function varargout=gps2com(files,plt)
 % dd = gps2com({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'},1)
 %
 % Originally written by tschuh-at-princeton.edu, 11/23/2021
-% Last modified by tschuh-at-princeton.edu, 02/03/2022
+% Last modified by tschuh-at-princeton.edu, 03/01/2022
 
 [d,~] = mat2mod(files);
 
@@ -39,26 +39,26 @@ d e f i n i t e l y n o t r e a d y y e t
 % maybe will eventually use a different scheme
 % ignoring d4 for now because bad data
 dd.t = d(1).t;
-alldx = [d(1).xyz(:,1) d(2).xyz(:,1) d(3).xyz(:,1)];% d(4).xyz(:,1)];
+alldx = [d(1).xyz(:,1) d(2).xyz(:,1) d(3).xyz(:,1) d(4).xyz(:,1)];
 dd.x = nanmean(alldx,2);
-alldy = [d(1).xyz(:,2) d(2).xyz(:,2) d(3).xyz(:,2)];% d(4).xyz(:,2)];
+alldy = [d(1).xyz(:,2) d(2).xyz(:,2) d(3).xyz(:,2) d(4).xyz(:,2)];
 dd.y = nanmean(alldy,2);
-alldz = [d(1).xyz(:,3) d(2).xyz(:,3) d(3).xyz(:,3)];% d(4).xyz(:,3)];
+alldz = [d(1).xyz(:,3) d(2).xyz(:,3) d(3).xyz(:,3) d(4).xyz(:,3)];
 dd.z = nanmean(alldz,2);
-alldlat = [d(1).lat d(2).lat d(3).lat];% d(4).lat];
+alldlat = [d(1).lat d(2).lat d(3).lat d(4).lat];
 dd.lat = nanmean(alldlat,2);
-alldlon = [d(1).lon d(2).lon d(3).lon];% d(4).lon];
+alldlon = [d(1).lon d(2).lon d(3).lon d(4).lon];
 dd.lon = nanmean(alldlon,2);
-alldutme = [d(1).utmeasting d(2).utmeasting d(3).utmeasting];% d(4).utmeasting];
+alldutme = [d(1).utmeasting d(2).utmeasting d(3).utmeasting d(4).utmeasting];
 dd.utme = nanmean(alldutme,2);
-alldutmn = [d(1).utmnorthing d(2).utmnorthing d(3).utmnorthing];% d(4).utmnorthing];
+alldutmn = [d(1).utmnorthing d(2).utmnorthing d(3).utmnorthing d(4).utmnorthing];
 dd.utmn = nanmean(alldutmn,2);
 dd.utmz = d(1).utmzone;
-alldht = [d(1).height d(2).height d(3).height];% d(4).height];
+alldht = [d(1).height d(2).height d(3).height d(4).height];
 dd.ht = nanmean(alldht,2);
-alldnsats = [d(1).nsats(:,1) d(2).nsats(:,1) d(3).nsats(:,1)];% d(4).nsats(:,1)];
+alldnsats = [d(1).nsats(:,1) d(2).nsats(:,1) d(3).nsats(:,1) d(4).nsats(:,1)];
 dd.nsats = nanmean(alldnsats,2);
-alldpdop = [d(1).pdop d(2).pdop d(3).pdop];% d(4).pdop];
+alldpdop = [d(1).pdop d(2).pdop d(3).pdop d(4).pdop];
 dd.pdop = nanmean(alldpdop,2);
 
 % plotting

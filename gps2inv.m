@@ -19,7 +19,7 @@ function varargout = gps2inv(st,d,vg,xyzg)
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% [st,xyz,v] = gps2fwd(d,tmax,[2e6 -4.5e6 3e6],1500);
+% [st,xyz,v] = gps2fwd(d,tmax,[1.977967 -5.073198 3.3101016]*1e6,1500);
 % xyzmat = gps2inv(st,d,v,xyz);
 %
 % Originally written by tschuh-at-princeton.edu, 02/16/2022
@@ -31,14 +31,18 @@ function varargout = gps2inv(st,d,vg,xyzg)
 % need to get rid of rows with NaNs
 % need to combine d.t and d.xyz into 1 matrix to remove all NaN rows
 %d.t(any(isnan(d.t),2),:)=[];
-d.xyz(any(isnan(d.xyz),2),:)=[];
+%d.xyz(any(isnan(d.xyz),2),:)=[];
+%st(any(isnan(st),2),:)=[];
+d.x(any(isnan(d.x),2),:)=[];
+d.y(any(isnan(d.y),2),:)=[];
+d.z(any(isnan(d.z),2),:)=[];
 st(any(isnan(st),2),:)=[];
 
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
 % guess the correct location
-defval('xyzg',[2e6 -4.5e6 3e6])
+defval('xyzg',[1.977967 -5.073198 3.3101016]*1e6)
 
 v0 = vg;
 xyz0 = xyzg;
@@ -51,10 +55,10 @@ xn = -0.1:int:0.1;
 yn = -0.1:int:0.1;
 zn = -0.1:int:0.1;
 
-int = 1;
-xn = -10:int:10;
-yn = -10:int:10;
-zn = -10:int:10;
+% int = 1;
+% xn = -10:int:10;
+% yn = -10:int:10;
+% zn = -10:int:10;
 
 xyzmat = zeros(length(xn)*length(yn)*length(zn),4);
 counter = 1;
@@ -67,7 +71,7 @@ for i=1:length(xn)
             sol(3) = xyzg(3) + xn(k);
 
             % The forward model is based on a guess
-            hsr = sqrt((d.xyz(:,1)-sol(1)).^2 + (d.xyz(:,2)-sol(2)).^2 + (d.xyz(:,3)-sol(3)).^2);
+            hsr = sqrt((d.x-sol(1)).^2 + (d.y-sol(2)).^2 + (d.z-sol(3)).^2);
             % simple forward model (could have used GPS2FWD again, more complicated forward models, etc.)
             hst = hsr./vg;
             rmse = norm(st - hst);

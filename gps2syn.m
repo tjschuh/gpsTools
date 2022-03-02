@@ -28,15 +28,22 @@ function varargout = gps2syn(st,d,vg,xyzg,expnum)
 % need to get rid of rows with NaNs
 % need to combine d.t and d.xyz into 1 matrix to remove all NaN rows
 %d.t(any(isnan(d.t),2),:)=[];
-d.x(any(isnan(d.x),2),:)=NaN;
-d.y(any(isnan(d.y),2),:)=NaN;
-d.z(any(isnan(d.z),2),:)=NaN;
-st(any(isnan(st),2),:)=NaN;
-
+% LEFT OFF HERE
+keyboard
+rowsx=find(isnan(d.x));
+rowsy=find(isnan(d.y));
+rowsz=find(isnan(d.z));
+rows=unique([rowsx;rowsy;rowsz]);
+d.t(rows,:)=[];
+d.x(rows,:)=[];
+d.y(rows,:)=[];
+d.z(rows,:)=[];
+st(rows,:)=[];
+keyboard
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
-% guess the correct location
+% guess the correct location [m]
 defval('xyzg',[1.977967 -5.073198 3.3101016]*1e6)
 
 v0 = vg;
@@ -68,7 +75,7 @@ for i=1:expnum
     ylabel('slant range time [s]')
 
     ah(2)=subplot(3,4,[3 4]);
-    %trajectory of ship
+    %trajectory of ship w/ C-DOG
     skp=1000;
     zex=d.utme(1:skp:end);
     zwi=d.utmn(1:skp:end);
@@ -112,30 +119,51 @@ for i=1:expnum
     ylabel('slant range time [\mus]')
 
     ah(4)=subplot(3,4,[7 8 11 12]);
-    nbins=round((max(res*1e6)-min(res*1e6))/(2*iqr(res*1e6)*(length(res*1e6))^(-1/3)));
+    data = res*1e6;
+    nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
     % calculate goodness of fit (gof) compared to a normal distribution
-    [~,~,stats]=chi2gof(res,'NBins',nbins);
+    [~,~,stats]=chi2gof(data,'NBins',nbins);
     % divide chi squared by degrees of freedom to reduce to 1 DoF
     % with 1 Dof, chi squared <= 4 signifies ~90% chance data are normal
     % will make red curve dotted if gof > 100
     gof=stats.chi2stat/stats.df;
     % Calculate histogram
-    [yvals,edges]=histcounts(res*1e6,nbins);
+    [yvals,edges]=histcounts(data,nbins);
     % Calculate bin centers 
     barc=0.5*(edges(1:end-1)+edges(2:end));
     % Plot the histogram
     b=bar(barc,yvals,'BarWidth',1);
     b.FaceColor = [0.400 0.6667 0.8431];
-    longticks
+    longticks([],2)
+    stdd=std(data);
+    nstd=3;
+    xel=round([-nstd nstd]*stdd,2);
+    xlim(xel)
+    ax.XTick=round([-nstd:nstd]*stdd,2);
+    % Trick to do it properly
+    bla=round([-nstd:nstd]*stdd,0);
+    for in=1:length(bla)
+        blace{in}=sprintf('%.0f',bla(in));
+    end
+    ax.XTickLabel=blace;
+    yel=[0 max(b.YData)+0.1*max(b.YData)];
+    ylim(yel)
+    ax.YTick=unique(0:50:max(yel));
+    if length(ax.YTick)>6
+        ax.YTick=unique(0:100:max(yel));
+    end
     grid on
     xlabel('residuals [\mus]')
+    t=text(-0.85*nstd*stdd,0.75*ah(4).YLim(2),...
+           sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
+                        length(data),stdd,median(data),mean(data),gof));
     hold on
-    pd = fitdist(res*1e6,'Normal');
+    pd = fitdist(data,'Normal');
     xvals = b.XData; 
     yvals = pdf(pd,xvals);
     area = sum(b.YData)*diff(b.XData(1:2));
     lain = plot(xvals,yvals*area,'r','LineWidth',2);
-    thresh = 100;
+    thresh = 1000;
     if gof > thresh
         lain.LineStyle = '--';
     end
@@ -143,9 +171,13 @@ for i=1:expnum
     
     ah(5)=subplot(3,4,[9 10]);
     %dop
-    %A = [(d.x-sol(1)) (d.y-sol(2)) (d.z-sol(3))]./hsr(:);
-    %A = [A -ones([length(A) 1])];
-    %keyboard
+    %for i=1:length(d.x)
+        %A = [(d.x(i,1)-sol(1)) (d.y(i,1)-sol(2)) (d.z(i,1)-sol(3))]./hsr(i);
+        %A = [A -ones([length(A) 1])];
+        %A = [A -1];
+        %Q = inv(A'*A);
+        %GDOP = sqrt(trace(Q));
+    %end
 
     tt=supertit(ah([1 2]),sprintf('Distance from Truth = [%g cm %g cm %g cm]',100*xyzn(1),100*xyzn(2),100*xyzn(3)));
 

@@ -23,7 +23,8 @@ function varargout = gps2inv(st,d,vg,xyzg)
 % xyzmat = gps2inv(st,d,v,xyz);
 %
 % Originally written by tschuh-at-princeton.edu, 02/16/2022
-
+% Last modified by tschuh-at-princeton.edu, 03/03/2022
+    
 % will clean this up later
 % just need working version for talk
 % add noise to ship locations [+/- 10 cm]
@@ -33,10 +34,10 @@ function varargout = gps2inv(st,d,vg,xyzg)
 %d.t(any(isnan(d.t),2),:)=[];
 %d.xyz(any(isnan(d.xyz),2),:)=[];
 %st(any(isnan(st),2),:)=[];
-d.x(any(isnan(d.x),2),:)=[];
-d.y(any(isnan(d.y),2),:)=[];
-d.z(any(isnan(d.z),2),:)=[];
-st(any(isnan(st),2),:)=[];
+%d.x(any(isnan(d.x),2),:)=[];
+%d.y(any(isnan(d.y),2),:)=[];
+%d.z(any(isnan(d.z),2),:)=[];
+%st(any(isnan(st),2),:)=[];
 
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
@@ -50,7 +51,7 @@ xyz0 = xyzg;
 % mesh/grid
 % need to make these constants
 % 0.01 --> 0.005
-int = 0.01;
+int = 0.005;
 xn = -0.1:int:0.1;
 yn = -0.1:int:0.1;
 zn = -0.1:int:0.1;
@@ -74,7 +75,9 @@ for i=1:length(xn)
             hsr = sqrt((d.x-sol(1)).^2 + (d.y-sol(2)).^2 + (d.z-sol(3)).^2);
             % simple forward model (could have used GPS2FWD again, more complicated forward models, etc.)
             hst = hsr./vg;
-            rmse = norm(st - hst);
+            differ = st-hst;
+            differ(find(isnan(differ)),:)=[];
+            rmse = norm(differ);
 
             xyzmat(counter,1) = xn(i);
             xyzmat(counter,2) = yn(j);
@@ -107,8 +110,8 @@ zlim([110*min(zn) 110*max(zn)])
 grid on
 longticks
 
-%figdisp(sprintf('gps2inv-cube'),[],'',2,[],'epstopdf')
-%close
+figdisp(sprintf('gps2inv-cube'),[],'',2,[],'epstopdf')
+close
 
 % also need to plot slice at z = 0 because we know ocean depth very well
 xymat = xyzmat(find(xyzmat(:,3) == 0),:);
@@ -127,8 +130,8 @@ ylim([110*min(yn) 110*max(yn)])
 grid on
 longticks
 
-%figdisp(sprintf('gps2inv-slice'),[],'',2,[],'epstopdf')
-%close
+figdisp(sprintf('gps2inv-slice'),[],'',2,[],'epstopdf')
+close
 
 % plot only rows where rmse < something
 thresh = 15;
@@ -150,8 +153,8 @@ zlim([110*min(zn) 110*max(zn)])
 grid on
 longticks
 
-%figdisp(sprintf('gps2inv-ellipsoid'),[],'',2,[],'epstopdf')
-%close
+figdisp(sprintf('gps2inv-ellipsoid'),[],'',2,[],'epstopdf')
+close
 
 % need to plot a histogram of the rmse values
 % not centered on 0 because rmse >= 0

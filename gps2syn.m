@@ -23,23 +23,17 @@ function varargout = gps2syn(st,d,vg,xyzg,expnum)
 % gps2syn(st,d,v,xyz,expnum);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/01/2022
+% Last modified by tschuh-at-princeton.edu, 03/03/2022
 
-% need to get rid of rows with NaNs
-% need to combine d.t and d.xyz into 1 matrix to remove all NaN rows
-%d.t(any(isnan(d.t),2),:)=[];
-% LEFT OFF HERE
-keyboard
-rowsx=find(isnan(d.x));
-rowsy=find(isnan(d.y));
-rowsz=find(isnan(d.z));
+% need to separate into multiple functions
+% i.e. have it call gps2fwd, etc
+
+% find the rows that dont contain NaNs
+rowsx=find(~isnan(d.x));
+rowsy=find(~isnan(d.y));
+rowsz=find(~isnan(d.z));
 rows=unique([rowsx;rowsy;rowsz]);
-d.t(rows,:)=[];
-d.x(rows,:)=[];
-d.y(rows,:)=[];
-d.z(rows,:)=[];
-st(rows,:)=[];
-keyboard
+
 % constant sound speed profile for now [m/s]
 defval('vg',1500)
 
@@ -53,123 +47,61 @@ xyz0 = xyzg;
 defval('expnum',100)
 
 sz=20;
+multi = 1e6;
+clf
 
 for i=1:expnum
     % generate a random decimal value between -10 cm and 10 cm
     xyzn = [(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000];
+    %xyzn = [0.01 0.01 0.01];
     sol = xyz0 + xyzn;
+    veln = 0;
+    vel = v0 + veln;
+    % forward model: creating data
     hsr = sqrt((d.x-sol(1)).^2 + (d.y-sol(2)).^2 + (d.z-sol(3)).^2);
-    hst = hsr./v0;
-    %rmse = norm(st - hst);
+    hst = hsr./vel;
+    % error between slant times and predicted slant times
     differ = st-hst;
+    rel = differ./st;
+    rmse = norm(differ(rows));
 
-    f=figure;
-    f.Position = [250 500 900 500];
-
-    ah(1)=subplot(3,4,[1 2]);
-    p(1)=plot(d.t,st,'LineWidth',1.5);
+    figure(1)
+    clf
+    lwidth = 1.5;
+    
+    ah(1)=subplot(2,4,[1 2]);
+    p(1)=plot(d.t,st,'LineWidth',lwidth);
     hold on
-    p(2)=plot(d.t,hst,'LineWidth',1.5);
+    p(2)=plot(d.t,hst,'LineWidth',lwidth);
     hold off
+    xticklabels([])
     cosmot(d.t)
     ylabel('slant range time [s]')
 
-    ah(2)=subplot(3,4,[3 4]);
-    %trajectory of ship w/ C-DOG
-    skp=1000;
-    zex=d.utme(1:skp:end);
-    zwi=d.utmn(1:skp:end);
-    refx=min(d.utme);
-    refy=min(d.utmn);
-    sclx=1000;
-    scly=1000;
-    plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
+    ah(2)=subplot(2,4,[5 6]);
+    times = seconds(d.t(rows)-d.t(rows(1)));
+    pf = polyfit(times,differ(rows),1);
+    bfline = polyval(pf,times);
+    p(3)=plot(d.t(rows),bfline*multi,'LineWidth',lwidth);
     hold on
-    scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
-                   'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
-    wgs84 = wgs84Ellipsoid('meter');
-    [lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
-    [dogx,dogy,~] = deg2utm(lat,mod(lon,360));
-    box on
-    grid on
-    longticks([],2)
-    xl(2)=xlabel('easting (km)');
-    yl(2)=ylabel('northing (km)');
-    openup(ah(2),5,10);
-    openup(ah(2),6,10);
-    scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
-               'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
+    p(4)=plot(d.t,differ*multi,'LineWidth',lwidth);
+    text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*multi)));
     hold off
-
-    ah(3)=subplot(3,4,[5 6]);
-    %differ(any(isnan(differ),2),:) = [];
-    time = d.t;
-    ind = isnan(differ);
-    differ(ind) = [];
-    time(ind) = [];
-    pf = polyfit([1:length(differ)]',differ,1);
-    a = pf(1)*1e6; b = pf(2);
-    bfline = (a/1e6).*[1:length(differ)]' + b;
-    res = bfline - differ;
-    p(3)=plot(time,bfline*1e6,'LineWidth',1.5);
-    hold on
-    p(4)=plot(time,differ*1e6,'LineWidth',1.5);
-    hold off
-    cosmot(time)
+    datetick('x','HH')
+    cosmot(d.t)
     ylabel('slant range time [\mus]')
+    xlabel('time [h]')
 
-    ah(4)=subplot(3,4,[7 8 11 12]);
-    data = res*1e6;
-    nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
-    % calculate goodness of fit (gof) compared to a normal distribution
-    [~,~,stats]=chi2gof(data,'NBins',nbins);
-    % divide chi squared by degrees of freedom to reduce to 1 DoF
-    % with 1 Dof, chi squared <= 4 signifies ~90% chance data are normal
-    % will make red curve dotted if gof > 100
-    gof=stats.chi2stat/stats.df;
-    % Calculate histogram
-    [yvals,edges]=histcounts(data,nbins);
-    % Calculate bin centers 
-    barc=0.5*(edges(1:end-1)+edges(2:end));
-    % Plot the histogram
-    b=bar(barc,yvals,'BarWidth',1);
+    ah(3)=subplot(2,4,[3 4]);
+    thresh1=1000;
+    [b,gof1]=cosmoh(rel(rows)*multi,ah(3),thresh1);
     b.FaceColor = [0.400 0.6667 0.8431];
-    longticks([],2)
-    stdd=std(data);
-    nstd=3;
-    xel=round([-nstd nstd]*stdd,2);
-    xlim(xel)
-    ax.XTick=round([-nstd:nstd]*stdd,2);
-    % Trick to do it properly
-    bla=round([-nstd:nstd]*stdd,0);
-    for in=1:length(bla)
-        blace{in}=sprintf('%.0f',bla(in));
-    end
-    ax.XTickLabel=blace;
-    yel=[0 max(b.YData)+0.1*max(b.YData)];
-    ylim(yel)
-    ax.YTick=unique(0:50:max(yel));
-    if length(ax.YTick)>6
-        ax.YTick=unique(0:100:max(yel));
-    end
-    grid on
-    xlabel('residuals [\mus]')
-    t=text(-0.85*nstd*stdd,0.75*ah(4).YLim(2),...
-           sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
-                        length(data),stdd,median(data),mean(data),gof));
-    hold on
-    pd = fitdist(data,'Normal');
-    xvals = b.XData; 
-    yvals = pdf(pd,xvals);
-    area = sum(b.YData)*diff(b.XData(1:2));
-    lain = plot(xvals,yvals*area,'r','LineWidth',2);
-    thresh = 1000;
-    if gof > thresh
-        lain.LineStyle = '--';
-    end
-    hold off
     
-    ah(5)=subplot(3,4,[9 10]);
+    ah(4)=subplot(2,4,[7 8]);
+    thresh2=1000;
+    [c,gof2]=cosmoh(differ(rows)*multi,ah(4),thresh2);
+    c.FaceColor = [0.8500 0.3250 0.0980];
+    
     %dop
     %for i=1:length(d.x)
         %A = [(d.x(i,1)-sol(1)) (d.y(i,1)-sol(2)) (d.z(i,1)-sol(3))]./hsr(i);
@@ -179,18 +111,14 @@ for i=1:expnum
         %GDOP = sqrt(trace(Q));
     %end
 
-    tt=supertit(ah([1 2]),sprintf('Distance from Truth = [%g cm %g cm %g cm]',100*xyzn(1),100*xyzn(2),100*xyzn(3)));
+    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g cm %g cm %g cm] = |%3.3f cm|',100*xyzn(1),100*xyzn(2),100*xyzn(3),100*sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2)));
 
     %figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
-    %close(f)
 
-    if i == 1
-        g=figure;
-        g.Position = [250 500 300 600];
-    end
-    
-    ahh(4)=subplot(3,1,1);
-    if gof > thresh
+    figure(2)
+    %g.Visible = 'off';
+    ahh(1)=subplot(2,2,1);
+    if gof2 > thresh2
         scatter(100*xyzn(1),100*xyzn(2),sz)
     else
         scatter(100*xyzn(1),100*xyzn(2),sz,'filled')
@@ -200,8 +128,8 @@ for i=1:expnum
     xlabel('perturbations in x [cm]')
     ylabel('perturbations in y [cm]')
 
-    ahh(5)=subplot(3,1,2);
-    if gof > thresh
+    ahh(2)=subplot(2,2,2);
+    if gof2 > thresh2
         scatter(100*xyzn(1),100*xyzn(3),sz)
     else
         scatter(100*xyzn(1),100*xyzn(3),sz,'filled')
@@ -211,8 +139,8 @@ for i=1:expnum
     xlabel('perturbations in x [cm]')
     ylabel('perturbations in z [cm]')
 
-    ahh(6)=subplot(3,1,3);
-    if gof > thresh
+    ahh(3)=subplot(2,2,3);
+    if gof2 > thresh2
         scatter(100*xyzn(2),100*xyzn(3),sz)
     else
         scatter(100*xyzn(2),100*xyzn(3),sz,'filled')
@@ -221,9 +149,46 @@ for i=1:expnum
     cosmoxyz()
     xlabel('perturbations in y [cm]')
     ylabel('perturbations in z [cm]')
+    %g.Visible = 'off';
 
+    ahh(4)=subplot(2,2,4);
+    %trajectory of ship w/ C-DOG
+    if i == expnum
+        %g.Visible = 'off';
+        skp=1000;
+        zex=d.utme(1:skp:end);
+        zwi=d.utmn(1:skp:end);
+        refx=min(d.utme);
+        refy=min(d.utmn);
+        sclx=1000;
+        scly=1000;
+        plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
+        hold on
+        scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
+                'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
+        wgs84 = wgs84Ellipsoid('meter');
+        [lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
+        [dogx,dogy,~] = deg2utm(lat,mod(lon,360));
+        box on
+        grid on
+        longticks([],2)
+        xl(2)=xlabel('easting (km)');
+        yl(2)=ylabel('northing (km)');
+        openup(ahh(4),5,10);
+        openup(ahh(4),6,10);
+        scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
+                'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
+        [lat,lon,~] = ecef2geodetic(wgs84,sol(1),sol(2),sol(3));
+        [fakex,fakey,~] = deg2utm(lat,mod(lon,360));
+        %scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
+        %        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
+        hold off
+        %g.Visible = 'off';
+    end
+    %g.Visible = 'off';    
 end
 
+%g.Visible = 'on';
 %figdisp(sprintf('synthetic'),[],[],2,[],'epstopdf')
 %close
 
@@ -237,3 +202,47 @@ grid on
 longticks
 xlim([-10 10])
 ylim([-10 10])
+
+function [b,gof]=cosmoh(data,ax,thresh)
+nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
+% calculate goodness of fit (gof) compared to a normal distribution
+[~,~,stats]=chi2gof(data,'NBins',nbins);
+% divide chi squared by degrees of freedom to reduce to 1 DoF
+% with 1 Dof, chi squared <= 4 signifies ~90% chance data are normal
+% will make red curve dotted if gof > 100
+gof=stats.chi2stat/stats.df;
+% Calculate histogram
+[yvals,edges]=histcounts(data,nbins);
+% Calculate bin centers 
+barc=0.5*(edges(1:end-1)+edges(2:end));
+% Plot the histogram
+b=bar(barc,yvals,'BarWidth',1);
+longticks([],2)
+stdd=std(data);
+nstd=3;
+xel=round([-nstd nstd]*stdd,2);
+xlim(xel)
+ax.XTick=round([-nstd:nstd]*stdd,2);
+% Trick to do it properly
+bla=round([-nstd:nstd]*stdd,0);
+for in=1:length(bla)
+    blace{in}=sprintf('%.0f',bla(in));
+end
+ax.XTickLabel=blace;
+yel=[0 max(b.YData)+0.1*max(b.YData)];
+ylim(yel)
+grid on
+xlabel('residuals [\mus]')
+t=text(-0.95*nstd*stdd,0.8*ax.YLim(2),...
+       sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
+                    length(data),stdd,median(data),mean(data),gof));
+hold on
+pd = fitdist(data,'Normal');
+xvals = b.XData; 
+yvals = pdf(pd,xvals);
+area = sum(b.YData)*diff(b.XData(1:2));
+lain = plot(xvals,yvals*area,'r','LineWidth',2);
+if gof > thresh
+    lain.LineStyle = '--';
+end
+hold off

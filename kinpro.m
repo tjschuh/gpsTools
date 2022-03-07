@@ -1,5 +1,5 @@
-function varargout=kinpro(prdfile,plt)
-% d=PRD2MAT(prdfile,protype,plt)
+function varargout=kinpro(prdfile,plt,demean)
+% d=PRD2MAT(prdfile,protype,plt,demean)
 %
 % Makes/saves/loads a *.prd GNSS Precise Point Positioning solution file
 % (created by PPP2PRD or RTK2PRD) into a structured *.mat file (and plots),
@@ -7,51 +7,43 @@ function varargout=kinpro(prdfile,plt)
 %
 % INPUT:
 %
-% prdfile      string with filename (e.g. '0002-05340.prd')
+% prdfile      string with filename (e.g. 'kin_28-29_pton.prd')
 % plt          0 for no plot, 1 for plot (default: 1)
+% demean       0 for no demeaning, 1 for demeaning ENU data (default: 0)
 %
 % OUTPUT:
 %
 % d            actual data struct
 % .mat file    output file saved as mat file to working directory
+% .txt file    output ascii file saved to working directory
 %
 % EXAMPLE:
 %
-% d=prd2mat('0002-05340.prd',1);
-%
-% REQUIRES:
-%
-% DEG2UTM.M
-%
-% SEE ALSO:
-%
-% MAT2MOD
+% d=prd2mat('kin_28-29_pton.prd',1,1);
 %
 % TESTED ON:
 %
 % R2020a Update 4 (9.8.0.1417392)
-% 9.0.0.341360 (R2016a) - without the timetabling... 
 %
 % Originally written by tschuh-at-princeton.edu, 03/04/2022
-
-% TO DO:
-% extract trip section from fname somehow
-% currently manually changing at end of code
-%
-% signify on plot when utmzone changes
+% Last modified by tschuh-at-princeton.edu, 03/07/2022
 
 % Default file name
-%defval('prdfile','0002-05340.prd')
+defval('prdfile','kin_28-29_pton.prd')
 
 % New output filename made from input
 [~,fname,~]=fileparts(prdfile);
-outfile=sprintf('%s.mat',fname);
+outfile1=sprintf('%s.mat',fname);
+outfile2=sprintf('%s.txt',fname);
 
-% Make a plot or not
+% Make a plot or not, 1 --> yes plot
 defval('plt',1)
 
+% Demean data or not, 0 --> dont demean
+defval('demean',0)
+
 % if outfile doesnt exist, make it and save it, otherwise load it
-if exist(outfile,'file')==0
+if exist(outfile1,'file')==0
     % station information from RINEX file
     % approx position [m]
     x0 = 1288235.7406;
@@ -85,10 +77,6 @@ if exist(outfile,'file')==0
     wgs84 = wgs84Ellipsoid('meter');
     [lat0,lon0,h0] = ecef2geodetic(wgs84,x0,y0,z0);
     [E,N,U] = ecef2enu(dm(:,3),dm(:,4),dm(:,5),lat0,lon0,h0,wgs84);
-    % subtract mean from data b/c thats what seismologists do
-    E = E-mean(E);
-    N = N-mean(N);
-    U = U-mean(U);
 
     % get rid of sat cols that are all zeros
     % cols 9:15 are sat info
@@ -98,38 +86,49 @@ if exist(outfile,'file')==0
     sats=dm(:,satcol(~chuck));
 
     % make data structure explicitly
-    scale{1,1} = 1e2; scale{1,2} = 'cm';
+    scale{1,1} = 1e0; scale{1,2} = 'm';
     d.(h{1}) = t;
     d.timezone = 'UTC';
     d.(h{2}) = [E N U]*scale{1,1};
     d.ENUunit = scale{1,2};
     d.(h{3}) = sats;
     d.(h{4}) = dm(:,end);
-    % Save
-    save(outfile,'d')
+    % save as mat file
+    save(outfile1,'d')
+    % save as ascii file
+    % may want to save variable names and units
+    T = table(t,E,N,U);
+    writetable(T,outfile2,'WriteVariableNames',0,'Delimiter',' ')
 else
     % Load
-    disp(sprintf('Loading %s',outfile))
-    load(outfile)
+    disp(sprintf('Loading %s',outfile1))
+    load(outfile1)
 end
 
 % plotting
 if plt == 1
+    % if user wants, subtract mean from data
+    if demean == 1
+        d.enu(:,1) = d.enu(:,1)-mean(d.enu(:,1));
+        d.enu(:,2) = d.enu(:,2)-mean(d.enu(:,2));
+        d.enu(:,3) = d.enu(:,3)-mean(d.enu(:,3));
+    end
+        
     f=figure;
     f.Position=[70 120 560 685];
     ah(1)=subplot(4,1,1);
     plot(d.t,d.enu(:,1),'k')
-    ylabel('east [cm]')
+    ylabel('east [m]')
     cosmoenu(d.enu(:,1),d.t)
     
     ah(2)=subplot(4,1,2);
     plot(d.t,d.enu(:,2),'k')
-    ylabel('north [cm]')
+    ylabel('north [m]')
     cosmoenu(d.enu(:,2),d.t)
     
     ah(3)=subplot(4,1,3);
     plot(d.t,d.enu(:,3),'k')
-    ylabel('up [cm]')
+    ylabel('up [m]')
     cosmoenu(d.enu(:,3),d.t)
     
     ah(4)=subplot(4,1,4);
@@ -164,7 +163,7 @@ varargout=varns(1:nargout);
 function cosmoenu(data,time)
 xlim([time(1) time(end)])
 slack=1.1;
-ylim(slack*[min(data) max(data)])
+ylim([min(data)-0.01*abs(min(data)) max(data)+0.01*abs(max(data))])
 longticks([],2)
 grid on
 xticklabels([])

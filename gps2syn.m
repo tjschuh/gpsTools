@@ -1,5 +1,5 @@
-function varargout = gps2syn(st,d,vg,xyzg,expnum)
-% GPS2SYN(st,d,vg,xyzg,expnum)
+function varargout = gps2syn(d,tmax,xyz,v,expnum)
+% GPS2SYN(d,tmax,xyz,v,expnum)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
@@ -9,24 +9,32 @@ function varargout = gps2syn(st,d,vg,xyzg,expnum)
 %
 % INPUT:
 %
-% st            slant times/arrival times of the signals from the
-%               "source" to the receiver whose position we want to find
-%               here. These are from the DOGS, or, synthetic, from GPS2RNG
-% d
-% vg            sound speed guess [m/s]
-% xyzg          initial beacon location guess [x y z] [m]
+% d            single dataset with x,y,z,t ship locations
+% tmax         last time in d
+% xyz          beacon location [x y z] [m]
+% v            sound speed [m/s]
+% expnum       number of experiments to run
 %
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% [st,xyz,v] = gps2fwd(d,tmax,[1.977967 -5.073198 3.3101016]*1e6,1500);
-% gps2syn(st,d,v,xyz,expnum);
+% gps2syn(d,tmax,xyz,v,expnum);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/03/2022
+% Last modified by tschuh-at-princeton.edu, 03/08/2022
 
-% need to separate into multiple functions
-% i.e. have it call gps2fwd, etc
+% TO-DO
+% edit figure 2
+% make option to run gps2inv code
+
+% C-DOG location [x,y,z] [m]
+defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
+
+% constant sound speed profile for now [m/s]
+defval('v',1500)
+
+% call gps2fwd to generate perfect st data
+[st,xyz0,v0] = gps2fwd(d,tmax,xyz,v);
 
 % find the rows that dont contain NaNs
 rowsx=find(~isnan(d.x));
@@ -34,50 +42,51 @@ rowsy=find(~isnan(d.y));
 rowsz=find(~isnan(d.z));
 rows=unique([rowsx;rowsy;rowsz]);
 
-% constant sound speed profile for now [m/s]
-defval('vg',1500)
-
-% guess the correct location [m]
-defval('xyzg',[1.977967 -5.073198 3.3101016]*1e6)
-
-v0 = vg;
-xyz0 = xyzg;
-
 % number of trials to run
-defval('expnum',100)
+defval('expnum',1)
 
 sz=20;
 multi = 1e6;
 clf
 
 for i=1:expnum
-    % generate a random decimal value between -10 cm and 10 cm
+    % generate random xyz perturbations between -10 cm and 10 cm
     xyzn = [(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000];
     %xyzn = [0.01 0.01 0.01];
-    sol = xyz0 + xyzn;
-    veln = 0;
-    vel = v0 + veln;
-    % forward model: creating data
-    hsr = sqrt((d.x-sol(1)).^2 + (d.y-sol(2)).^2 + (d.z-sol(3)).^2);
-    hst = hsr./vel;
+    % add xyzn to xyz0 to get perturbed C-DOG location
+    xyzg = xyz0 + xyzn;
+    % generate a random velocity perturbation
+    vn = 0;
+    % add vn to v0 to get perturbed sound speed
+    vg = v0 + vn;
+    % forward model: creating perturbed data
+    hsr = sqrt((d.x-xyzg(1)).^2 + (d.y-xyzg(2)).^2 + (d.z-xyzg(3)).^2);
+    hst = hsr./vg;
     % error between slant times and predicted slant times
     differ = st-hst;
+    % calculate relative time difference
     rel = differ./st;
+    % calculate rms(st-hst)
     rmse = norm(differ(rows));
 
     figure(1)
     clf
     lwidth = 1.5;
-    
+
+    % plot st and hst
     ah(1)=subplot(2,4,[1 2]);
-    p(1)=plot(d.t,st,'LineWidth',lwidth);
+    p(1)=plot(d.t,st,'-','LineWidth',lwidth);
     hold on
-    p(2)=plot(d.t,hst,'LineWidth',lwidth);
+    p(2)=plot(d.t,hst,'--','LineWidth',lwidth);
     hold off
+    datetick('x','HH')
     xticklabels([])
     cosmot(d.t)
     ylabel('slant range time [s]')
+    title('st and hst')
+    legend({'st','hst'})
 
+    % plot absolute time differences
     ah(2)=subplot(2,4,[5 6]);
     times = seconds(d.t(rows)-d.t(rows(1)));
     pf = polyfit(times,differ(rows),1);
@@ -85,26 +94,31 @@ for i=1:expnum
     p(3)=plot(d.t(rows),bfline*multi,'LineWidth',lwidth);
     hold on
     p(4)=plot(d.t,differ*multi,'LineWidth',lwidth);
-    text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*multi)));
+    %text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*multi)));
     hold off
     datetick('x','HH')
     cosmot(d.t)
+    title('Difference between st and hst')
     ylabel('slant range time [\mus]')
     xlabel('time [h]')
 
+    % plot histogram of relative time differences
     ah(3)=subplot(2,4,[3 4]);
     thresh1=1000;
     [b,gof1]=cosmoh(rel(rows)*multi,ah(3),thresh1);
     b.FaceColor = [0.400 0.6667 0.8431];
+    title('Relative Time Differences')
     
+    % plot histogram of absolute time differences
     ah(4)=subplot(2,4,[7 8]);
     thresh2=1000;
     [c,gof2]=cosmoh(differ(rows)*multi,ah(4),thresh2);
     c.FaceColor = [0.8500 0.3250 0.0980];
+    title('Absolute Time Differences')
     
     %dop
     %for i=1:length(d.x)
-        %A = [(d.x(i,1)-sol(1)) (d.y(i,1)-sol(2)) (d.z(i,1)-sol(3))]./hsr(i);
+        %A = [(d.x(i,1)-xyzg(1)) (d.y(i,1)-xyzg(2)) (d.z(i,1)-xyzg(3))]./hsr(i);
         %A = [A -ones([length(A) 1])];
         %A = [A -1];
         %Q = inv(A'*A);
@@ -112,7 +126,8 @@ for i=1:expnum
     %end
 
     tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g cm %g cm %g cm] = |%3.3f cm|',100*xyzn(1),100*xyzn(2),100*xyzn(3),100*sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2)));
-
+    movev(tt,0.4);
+    
     %figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
 
     figure(2)
@@ -178,7 +193,7 @@ for i=1:expnum
         openup(ahh(4),6,10);
         scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
                 'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
-        [lat,lon,~] = ecef2geodetic(wgs84,sol(1),sol(2),sol(3));
+        [lat,lon,~] = ecef2geodetic(wgs84,xyzg(1),xyzg(2),xyzg(3));
         [fakex,fakey,~] = deg2utm(lat,mod(lon,360));
         %scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
         %        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
@@ -233,7 +248,7 @@ yel=[0 max(b.YData)+0.1*max(b.YData)];
 ylim(yel)
 grid on
 xlabel('residuals [\mus]')
-t=text(-0.95*nstd*stdd,0.8*ax.YLim(2),...
+t=text(-0.95*nstd*stdd,0.75*ax.YLim(2),...
        sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
                     length(data),stdd,median(data),mean(data),gof));
 hold on

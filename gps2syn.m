@@ -29,7 +29,9 @@ function varargout = gps2syn(d,tmax,xyz,v,expnum,exptype)
 % play with system method
 
 % C-DOG location [x,y,z] [m]
-defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
+[bla,blu,blo] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
+defval('xyz',[bla blu blo])
+%defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
 
 % constant sound speed profile for now [m/s]
 defval('v',1500)
@@ -44,7 +46,7 @@ rowsz=find(~isnan(d.z));
 rows=unique([rowsx;rowsy;rowsz]);
 
 % number of trials to run
-defval('expnum',1)
+defval('expnum',125)
 
 % experiment type
 defval('exptype','system')
@@ -65,9 +67,27 @@ for i=1:expnum
     if exptype == 'random'
         % generate random xyz perturbations between -10 xmulti{1,2} and 10 xmulti{1,2}
         xyzn(i,:) = [(randi(201)-101) (randi(201)-101) (randi(201)-101)]./(xmulti{1,1}*10);
-    elseif exptype == 'system'
-        % need to figure out how to generate multiple grid-based numbers
-        xyzn(i,:) = [-3.3 -8.9 4.8]./xmulti{1,1};
+    elseif exptype == 'system' & i == 1
+        % this is not the best way to do this, but it works for now
+        %xyzn(i,:) = [0 0 0]./xmulti{1,1};
+        %for int=0.04, bound=0.1 --> expnum = 6^3 = 216;
+        %for int=0.02, bound=0.1 --> expnum = 11^3 = 1331;
+        int = 5/xmulti{1,1};
+        bound = 10/xmulti{1,1};
+        xn = -bound:int:bound;
+        yn = -bound:int:bound;
+        zn = -bound:int:bound;
+        scount = 1;
+        for a=1:length(xn)
+            for b=1:length(yn)
+                for c=1:length(zn)
+                    xyzn(scount,1) = xn(a);
+                    xyzn(scount,2) = yn(b);
+                    xyzn(scount,3) = zn(c);
+                    scount = scount + 1;
+                end
+            end
+        end
     end
     % add xyzn to xyz0 to get perturbed C-DOG location
     xyzg = xyz0 + xyzn(i,:);
@@ -120,20 +140,26 @@ for i=1:expnum
 
     % plot histogram of relative time differences
     ah(3)=subplot(2,4,[3 4]);
-    thresh1=1000;
-    nstd1 = 1;
-    [b,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2},nstd1);
-    b.FaceColor = [0.400 0.6667 0.8431];
-    title('Relative Time Differences')
-    
+    try
+        thresh1=1000;
+        nstd1 = 1;
+        [b,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2},nstd1);
+        b.FaceColor = [0.400 0.6667 0.8431];
+        title('Relative Time Differences')
+    catch
+    end
+
     % plot histogram of absolute time differences
     ah(4)=subplot(2,4,[7 8]);
-    thresh2=1000;
-    nstd2 = 2;
-    [c,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2},nstd2);
-    c.FaceColor = [0.8500 0.3250 0.0980];
-    title('Absolute Time Differences')
-    
+    try
+        thresh2=1000;
+        nstd2 = 2;
+        [c,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2},nstd2);
+        c.FaceColor = [0.8500 0.3250 0.0980];
+        title('Absolute Time Differences')
+    catch
+    end
+
     %dop
     %for i=1:length(d.x)
         %A = [(d.x(i,1)-xyzg(1)) (d.y(i,1)-xyzg(2)) (d.z(i,1)-xyzg(3))]./hsr(i);
@@ -151,10 +177,13 @@ for i=1:expnum
     g=figure(2);
     g.Visible = 'off';
     ahh(1)=subplot(2,2,1);
-    if gof2 > thresh2
-        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz)
-    else
-        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz,'filled')
+    try
+        if gof2 > thresh2
+            scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz)
+        else
+            scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz,'filled')
+        end
+    catch
     end
     hold on
     cosmoxyz()
@@ -162,10 +191,13 @@ for i=1:expnum
     ylabel(sprintf('perturbations in y [%s]',xmulti{1,2}))
 
     ahh(2)=subplot(2,2,2);
-    if gof2 > thresh2
-        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz)
-    else
-        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz,'filled')
+    try
+        if gof2 > thresh2
+            scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz)
+        else
+            scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz,'filled')
+        end
+    catch
     end
     hold on
     cosmoxyz()
@@ -173,13 +205,16 @@ for i=1:expnum
     ylabel(sprintf('perturbations in z [%s]',xmulti{1,2}))
 
     ahh(3)=subplot(2,2,3);
-    if gof2 > thresh2
-        scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz)
-    else
-        scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz,'filled')
-        % save perturbations to new matrix for later use
-        ellip(counter,:) = xyzn(i,:);
-        counter = counter + 1;
+    try
+        if gof2 > thresh2
+            scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz)
+        else
+            scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz,'filled')
+            % save perturbations to new matrix for later use
+            ellip(counter,:) = xyzn(i,:);
+            counter = counter + 1;
+        end
+    catch
     end
     hold on
     cosmoxyz()
@@ -235,7 +270,13 @@ figdisp(sprintf('trials'),[],[],2,[],'epstopdf')
 if exist('ellip','var') == 1
     figure(3)
     % maybe plot with contours?
-    scatter3(ellip(:,1),ellip(:,2),ellip(:,3),sz,'filled')
+    scatter3(ellip(:,1)*xmulti{1,1},ellip(:,2)*xmulti{1,1},ellip(:,3)*xmulti{1,1},sz,'filled')
+    xlim([-10 10])
+    ylim([-10 10])
+    zlim([-10 10])
+    xlabel(sprintf('perturbations in x [%s]',xmulti{1,2}))
+    ylabel(sprintf('perturbations in y [%s]',xmulti{1,2}))
+    zlabel(sprintf('perturbations in z [%s]',xmulti{1,2}))
     
     figdisp(sprintf('ellipsoid'),[],[],2,[],'epstopdf')
 end

@@ -16,7 +16,7 @@ function [x0,y0,z0]=gps2depth(dxyz,depth)
 % Last modified by fjsimons-at-alum.mit.edu, 02/07/2022
 
 % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
-defval('depth',gebco(68+42/60,-(31+27/60)));
+%defval('depth',gebco(68+42/60,-(31+27/60)));
 
 % The GPS points in spherical coordinates
 [AZ,EL,r]=cart2sph(dxyz(:,1),dxyz(:,2),dxyz(:,3));

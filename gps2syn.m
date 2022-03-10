@@ -46,10 +46,10 @@ rowsz=find(~isnan(d.z));
 rows=unique([rowsx;rowsy;rowsz]);
 
 % number of trials to run
-defval('expnum',125)
+defval('expnum',1)
 
 % experiment type
-defval('exptype','system')
+defval('exptype','random')
 
 % marker size
 sz=20;
@@ -67,6 +67,7 @@ for i=1:expnum
     if exptype == 'random'
         % generate random xyz perturbations between -10 xmulti{1,2} and 10 xmulti{1,2}
         xyzn(i,:) = [(randi(201)-101) (randi(201)-101) (randi(201)-101)]./(xmulti{1,1}*10);
+        xyzn(i,:) = [0 0 0];
     elseif exptype == 'system' & i == 1
         % this is not the best way to do this, but it works for now
         %xyzn(i,:) = [0 0 0]./xmulti{1,1};
@@ -142,7 +143,7 @@ for i=1:expnum
     ah(3)=subplot(2,4,[3 4]);
     try
         thresh1=1000;
-        nstd1 = 1;
+        nstd1 = 3;
         [b,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2},nstd1);
         b.FaceColor = [0.400 0.6667 0.8431];
         title('Relative Time Differences')
@@ -153,7 +154,7 @@ for i=1:expnum
     ah(4)=subplot(2,4,[7 8]);
     try
         thresh2=1000;
-        nstd2 = 2;
+        nstd2 = 3;
         [c,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2},nstd2);
         c.FaceColor = [0.8500 0.3250 0.0980];
         title('Absolute Time Differences')
@@ -171,9 +172,10 @@ for i=1:expnum
 
     tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|',xmulti{1,1}*xyzn(i,1),xmulti{1,2},xmulti{1,1}*xyzn(i,2),xmulti{1,2},xmulti{1,1}*xyzn(i,3),xmulti{1,2},xmulti{1,1}*sqrt(xyzn(i,1)^2+xyzn(i,2)^2+xyzn(i,3)^2),xmulti{1,2}));
     movev(tt,0.4);
+xver=0;
     
-    figdisp(sprintf('experiment-%d',i),[],[],2,[],'epstopdf')
-
+    figdisp(sprintf('experiment-%d',i),[],[],xver,[],'epstopdf')
+    if xver
     g=figure(2);
     g.Visible = 'off';
     ahh(1)=subplot(2,2,1);
@@ -260,6 +262,9 @@ for i=1:expnum
 
     ttt=supertit(ahh([1 2]),sprintf('Results of Experiment'));
     movev(ttt,0.3)
+
+end
+% pause(1)
 end
 
 g.Visible = 'on';
@@ -313,7 +318,7 @@ b=bar(barc,yvals,'BarWidth',1);
 longticks([],2)
 stdd=std(data);
 %nstd=3;
-xel=round([-nstd nstd]*stdd,2);
+xel=round(mean(data)+[-nstd nstd]*stdd,2);
 xlim(xel)
 ax.XTick=round([-nstd:nstd]*stdd,2);
 % Trick to do it properly

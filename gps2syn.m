@@ -1,5 +1,5 @@
-function varargout = gps2syn(d,tmax,xyz,v,expnum)
-% GPS2SYN(d,tmax,xyz,v,expnum)
+function varargout = gps2syn(d,tmax,xyz,v,expnum,exptype)
+% GPS2SYN(d,tmax,xyz,v,expnum,exptype)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
@@ -14,18 +14,19 @@ function varargout = gps2syn(d,tmax,xyz,v,expnum)
 % xyz          beacon location [x y z] [m]
 % v            sound speed [m/s]
 % expnum       number of experiments to run
+% exptype      type of number generation (random or system)
 %
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% gps2syn(d,tmax,xyz,v,expnum);
+% gps2syn(d,tmax,[],[],[],[]);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/08/2022
+% Last modified by tschuh-at-princeton.edu, 03/09/2022
 
 % TO-DO
-% edit figure 2
-% make option to run gps2inv code
+% play with velocity
+% play with system method
 
 % C-DOG location [x,y,z] [m]
 defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
@@ -45,16 +46,31 @@ rows=unique([rowsx;rowsy;rowsz]);
 % number of trials to run
 defval('expnum',1)
 
+% experiment type
+defval('exptype','system')
+
+% marker size
 sz=20;
-multi = 1e6;
+% counter for keeping track of points we care about
+counter = 1;
+% unit multipliers across time and space
+tmulti{1,1} = 1e6; tmulti{1,2} = '\mus';
+xmulti{1,1} = 1e2; xmulti{1,2} = 'cm';
 clf
 
+% allocate array for number of experiments
+xyzn = zeros(expnum,3);
+
 for i=1:expnum
-    % generate random xyz perturbations between -10 cm and 10 cm
-    xyzn = [(randi(201)-101)./1000 (randi(201)-101)./1000 (randi(201)-101)./1000];
-    %xyzn = [0.01 0.01 0.01];
+    if exptype == 'random'
+        % generate random xyz perturbations between -10 xmulti{1,2} and 10 xmulti{1,2}
+        xyzn(i,:) = [(randi(201)-101) (randi(201)-101) (randi(201)-101)]./(xmulti{1,1}*10);
+    elseif exptype == 'system'
+        % need to figure out how to generate multiple grid-based numbers
+        xyzn(i,:) = [-3.3 -8.9 4.8]./xmulti{1,1};
+    end
     % add xyzn to xyz0 to get perturbed C-DOG location
-    xyzg = xyz0 + xyzn;
+    xyzg = xyz0 + xyzn(i,:);
     % generate a random velocity perturbation
     vn = 0;
     % add vn to v0 to get perturbed sound speed
@@ -91,28 +107,30 @@ for i=1:expnum
     times = seconds(d.t(rows)-d.t(rows(1)));
     pf = polyfit(times,differ(rows),1);
     bfline = polyval(pf,times);
-    p(3)=plot(d.t(rows),bfline*multi,'LineWidth',lwidth);
+    p(3)=plot(d.t(rows),bfline*tmulti{1,1},'LineWidth',lwidth);
     hold on
-    p(4)=plot(d.t,differ*multi,'LineWidth',lwidth);
-    %text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*multi)));
+    p(4)=plot(d.t,differ*tmulti{1,1},'LineWidth',lwidth);
+    %text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*tmulti{1,1})));
     hold off
     datetick('x','HH')
     cosmot(d.t)
     title('Difference between st and hst')
-    ylabel('slant range time [\mus]')
+    ylabel(sprintf('slant range time [%s]',tmulti{1,2}))
     xlabel('time [h]')
 
     % plot histogram of relative time differences
     ah(3)=subplot(2,4,[3 4]);
     thresh1=1000;
-    [b,gof1]=cosmoh(rel(rows)*multi,ah(3),thresh1);
+    nstd1 = 1;
+    [b,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2},nstd1);
     b.FaceColor = [0.400 0.6667 0.8431];
     title('Relative Time Differences')
     
     % plot histogram of absolute time differences
     ah(4)=subplot(2,4,[7 8]);
     thresh2=1000;
-    [c,gof2]=cosmoh(differ(rows)*multi,ah(4),thresh2);
+    nstd2 = 2;
+    [c,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2},nstd2);
     c.FaceColor = [0.8500 0.3250 0.0980];
     title('Absolute Time Differences')
     
@@ -125,51 +143,54 @@ for i=1:expnum
         %GDOP = sqrt(trace(Q));
     %end
 
-    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g cm %g cm %g cm] = |%3.3f cm|',100*xyzn(1),100*xyzn(2),100*xyzn(3),100*sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2)));
+    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|',xmulti{1,1}*xyzn(i,1),xmulti{1,2},xmulti{1,1}*xyzn(i,2),xmulti{1,2},xmulti{1,1}*xyzn(i,3),xmulti{1,2},xmulti{1,1}*sqrt(xyzn(i,1)^2+xyzn(i,2)^2+xyzn(i,3)^2),xmulti{1,2}));
     movev(tt,0.4);
     
-    %figdisp(sprintf('synthetic-%d',i),[],[],2,[],'epstopdf')
+    figdisp(sprintf('experiment-%d',i),[],[],2,[],'epstopdf')
 
-    figure(2)
-    %g.Visible = 'off';
+    g=figure(2);
+    g.Visible = 'off';
     ahh(1)=subplot(2,2,1);
     if gof2 > thresh2
-        scatter(100*xyzn(1),100*xyzn(2),sz)
+        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz)
     else
-        scatter(100*xyzn(1),100*xyzn(2),sz,'filled')
+        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz,'filled')
     end
     hold on
     cosmoxyz()
-    xlabel('perturbations in x [cm]')
-    ylabel('perturbations in y [cm]')
+    xlabel(sprintf('perturbations in x [%s]',xmulti{1,2}))
+    ylabel(sprintf('perturbations in y [%s]',xmulti{1,2}))
 
     ahh(2)=subplot(2,2,2);
     if gof2 > thresh2
-        scatter(100*xyzn(1),100*xyzn(3),sz)
+        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz)
     else
-        scatter(100*xyzn(1),100*xyzn(3),sz,'filled')
+        scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz,'filled')
     end
     hold on
     cosmoxyz()
-    xlabel('perturbations in x [cm]')
-    ylabel('perturbations in z [cm]')
+    xlabel(sprintf('perturbations in x [%s]',xmulti{1,2}))
+    ylabel(sprintf('perturbations in z [%s]',xmulti{1,2}))
 
     ahh(3)=subplot(2,2,3);
     if gof2 > thresh2
-        scatter(100*xyzn(2),100*xyzn(3),sz)
+        scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz)
     else
-        scatter(100*xyzn(2),100*xyzn(3),sz,'filled')
+        scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz,'filled')
+        % save perturbations to new matrix for later use
+        ellip(counter,:) = xyzn(i,:);
+        counter = counter + 1;
     end
     hold on
     cosmoxyz()
-    xlabel('perturbations in y [cm]')
-    ylabel('perturbations in z [cm]')
-    %g.Visible = 'off';
+    xlabel(sprintf('perturbations in y [%s]',xmulti{1,2}))
+    ylabel(sprintf('perturbations in z [%s]',xmulti{1,2}))
+    g.Visible = 'off';
 
     ahh(4)=subplot(2,2,4);
     %trajectory of ship w/ C-DOG
     if i == expnum
-        %g.Visible = 'off';
+        g.Visible = 'off';
         skp=1000;
         zex=d.utme(1:skp:end);
         zwi=d.utmn(1:skp:end);
@@ -187,8 +208,8 @@ for i=1:expnum
         box on
         grid on
         longticks([],2)
-        xl(2)=xlabel('easting (km)');
-        yl(2)=ylabel('northing (km)');
+        xl(2)=xlabel('easting [km]');
+        yl(2)=ylabel('northing [km]');
         openup(ahh(4),5,10);
         openup(ahh(4),6,10);
         scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
@@ -198,14 +219,30 @@ for i=1:expnum
         %scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
         %        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
         hold off
-        %g.Visible = 'off';
+        g.Visible = 'off';
     end
-    %g.Visible = 'off';    
+    g.Visible = 'off';    
+
+    ttt=supertit(ahh([1 2]),sprintf('Results of Experiment'));
+    movev(ttt,0.3)
 end
 
-%g.Visible = 'on';
-%figdisp(sprintf('synthetic'),[],[],2,[],'epstopdf')
+g.Visible = 'on';
+figdisp(sprintf('trials'),[],[],2,[],'epstopdf')
 %close
+
+% if ellip exists, plot it
+if exist('ellip','var') == 1
+    figure(3)
+    % maybe plot with contours?
+    scatter3(ellip(:,1),ellip(:,2),ellip(:,3),sz,'filled')
+    
+    figdisp(sprintf('ellipsoid'),[],[],2,[],'epstopdf')
+end
+
+% optional output
+varns={ellip};
+varargout=varns(1:nargout);
 
 function cosmot(t)
 xlim([t(1) t(end)])
@@ -218,7 +255,7 @@ longticks
 xlim([-10 10])
 ylim([-10 10])
 
-function [b,gof]=cosmoh(data,ax,thresh)
+function [b,gof]=cosmoh(data,ax,thresh,multi,nstd)
 nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
 % calculate goodness of fit (gof) compared to a normal distribution
 [~,~,stats]=chi2gof(data,'NBins',nbins);
@@ -234,7 +271,7 @@ barc=0.5*(edges(1:end-1)+edges(2:end));
 b=bar(barc,yvals,'BarWidth',1);
 longticks([],2)
 stdd=std(data);
-nstd=3;
+%nstd=3;
 xel=round([-nstd nstd]*stdd,2);
 xlim(xel)
 ax.XTick=round([-nstd:nstd]*stdd,2);
@@ -247,7 +284,7 @@ ax.XTickLabel=blace;
 yel=[0 max(b.YData)+0.1*max(b.YData)];
 ylim(yel)
 grid on
-xlabel('residuals [\mus]')
+xlabel(sprintf('residuals [%s]',multi))
 t=text(-0.95*nstd*stdd,0.75*ax.YLim(2),...
        sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
                     length(data),stdd,median(data),mean(data),gof));

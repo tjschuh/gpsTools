@@ -1,7 +1,7 @@
 function varargout = gps2fwd(d,tmax,xyz,v)
 % [st,xyz,v] = GPS2FW(d,tmax,xyz,v)
 %
-%
+% simple forward model
 %
 % INPUT:
 %
@@ -22,11 +22,11 @@ function varargout = gps2fwd(d,tmax,xyz,v)
 % [st,xyz,v] = gps2fwd(d,tmax,[1.977967 -5.073198 3.3101016]*1e6,1500);
 %
 % Originally written by tschuh-at-princeton.edu, 02/16/2022
-% Last modified by tschuh-at-princeton.edu, 03/01/2022
+% Last modified by tschuh-at-princeton.edu, 03/14/2022
 
 % choose a beacon location at center of our real "cross" trajectory [m]
-[bla,blu,blo] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
-defval('xyz',[bla blu blo])
+[x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
+defval('xyz',[x y z])
 
 % constant sound speed profile for now [m/s]
 defval('v',1500)

@@ -22,15 +22,15 @@ function varargout = gps2syn(d,tmax,xyz,v,expnum,exptype)
 % gps2syn(d,tmax,[],[],[],[]);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/09/2022
+% Last modified by tschuh-at-princeton.edu, 03/14/2022
 
 % TO-DO
 % play with velocity
 % play with system method
 
 % C-DOG location [x,y,z] [m]
-[bla,blu,blo] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
-defval('xyz',[bla blu blo])
+[x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
+defval('xyz',[x y z])
 %defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
 
 % constant sound speed profile for now [m/s]
@@ -46,10 +46,10 @@ rowsz=find(~isnan(d.z));
 rows=unique([rowsx;rowsy;rowsz]);
 
 % number of trials to run
-defval('expnum',1)
+defval('expnum',125)
 
 % experiment type
-defval('exptype','random')
+defval('exptype','system')
 
 % marker size
 sz=20;
@@ -57,7 +57,7 @@ sz=20;
 counter = 1;
 % unit multipliers across time and space
 tmulti{1,1} = 1e6; tmulti{1,2} = '\mus';
-xmulti{1,1} = 1e2; xmulti{1,2} = 'cm';
+xmulti{1,1} = 1e3; xmulti{1,2} = 'mm';
 clf
 
 % allocate array for number of experiments
@@ -67,10 +67,11 @@ for i=1:expnum
     if exptype == 'random'
         % generate random xyz perturbations between -10 xmulti{1,2} and 10 xmulti{1,2}
         xyzn(i,:) = [(randi(201)-101) (randi(201)-101) (randi(201)-101)]./(xmulti{1,1}*10);
-        xyzn(i,:) = [0 0 0];
+        xyzn(i,:) = [-10 -5 5]./(xmulti{1,1});
     elseif exptype == 'system' & i == 1
         % this is not the best way to do this, but it works for now
         %xyzn(i,:) = [0 0 0]./xmulti{1,1};
+        %for int=0.05, bound=0.1 --> expnum = 5^3 = 125;
         %for int=0.04, bound=0.1 --> expnum = 6^3 = 216;
         %for int=0.02, bound=0.1 --> expnum = 11^3 = 1331;
         int = 5/xmulti{1,1};
@@ -131,7 +132,6 @@ for i=1:expnum
     p(3)=plot(d.t(rows),bfline*tmulti{1,1},'LineWidth',lwidth);
     hold on
     p(4)=plot(d.t,differ*tmulti{1,1},'LineWidth',lwidth);
-    %text(d.t(1000),0.9*ah(2).YLim(2),sprintf('avg = %3.0f',mean(differ(rows)*tmulti{1,1})));
     hold off
     datetick('x','HH')
     cosmot(d.t)
@@ -142,10 +142,10 @@ for i=1:expnum
     % plot histogram of relative time differences
     ah(3)=subplot(2,4,[3 4]);
     try
-        thresh1=1000;
-        nstd1 = 3;
-        [b,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2},nstd1);
+        thresh1=500;
+        [b,lain1,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
         b.FaceColor = [0.400 0.6667 0.8431];
+        lain2.Color = 'blue';
         title('Relative Time Differences')
     catch
     end
@@ -153,10 +153,10 @@ for i=1:expnum
     % plot histogram of absolute time differences
     ah(4)=subplot(2,4,[7 8]);
     try
-        thresh2=1000;
-        nstd2 = 3;
-        [c,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2},nstd2);
+        thresh2=500;
+        [c,lain2,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2});
         c.FaceColor = [0.8500 0.3250 0.0980];
+        lain1.Color = 'red';
         title('Absolute Time Differences')
     catch
     end
@@ -172,15 +172,14 @@ for i=1:expnum
 
     tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|',xmulti{1,1}*xyzn(i,1),xmulti{1,2},xmulti{1,1}*xyzn(i,2),xmulti{1,2},xmulti{1,1}*xyzn(i,3),xmulti{1,2},xmulti{1,1}*sqrt(xyzn(i,1)^2+xyzn(i,2)^2+xyzn(i,3)^2),xmulti{1,2}));
     movev(tt,0.4);
-xver=0;
     
-    figdisp(sprintf('experiment-%d',i),[],[],xver,[],'epstopdf')
-    if xver
+    figdisp(sprintf('experiment-%04d',i),[],[],2,[],'epstopdf')
+
     g=figure(2);
     g.Visible = 'off';
     ahh(1)=subplot(2,2,1);
     try
-        if gof2 > thresh2
+        if strcmp(lain1.LineStyle,'--') | strcmp(lain2.LineStyle,'--')
             scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz)
         else
             scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,2),sz,'filled')
@@ -194,7 +193,7 @@ xver=0;
 
     ahh(2)=subplot(2,2,2);
     try
-        if gof2 > thresh2
+        if strcmp(lain1.LineStyle,'--') | strcmp(lain2.LineStyle,'--')
             scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz)
         else
             scatter(xmulti{1,1}*xyzn(i,1),xmulti{1,1}*xyzn(i,3),sz,'filled')
@@ -208,7 +207,7 @@ xver=0;
 
     ahh(3)=subplot(2,2,3);
     try
-        if gof2 > thresh2
+        if strcmp(lain1.LineStyle,'--') | strcmp(lain2.LineStyle,'--')
             scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz)
         else
             scatter(xmulti{1,1}*xyzn(i,2),xmulti{1,1}*xyzn(i,3),sz,'filled')
@@ -262,9 +261,6 @@ xver=0;
 
     ttt=supertit(ahh([1 2]),sprintf('Results of Experiment'));
     movev(ttt,0.3)
-
-end
-% pause(1)
 end
 
 g.Visible = 'on';
@@ -301,7 +297,7 @@ longticks
 xlim([-10 10])
 ylim([-10 10])
 
-function [b,gof]=cosmoh(data,ax,thresh,multi,nstd)
+function [b,lain,gof]=cosmoh(data,ax,thresh,multi)
 nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
 % calculate goodness of fit (gof) compared to a normal distribution
 [~,~,stats]=chi2gof(data,'NBins',nbins);
@@ -317,7 +313,7 @@ barc=0.5*(edges(1:end-1)+edges(2:end));
 b=bar(barc,yvals,'BarWidth',1);
 longticks([],2)
 stdd=std(data);
-%nstd=3;
+nstd=3;
 xel=round(mean(data)+[-nstd nstd]*stdd,2);
 xlim(xel)
 ax.XTick=round([-nstd:nstd]*stdd,2);
@@ -331,7 +327,7 @@ yel=[0 max(b.YData)+0.1*max(b.YData)];
 ylim(yel)
 grid on
 xlabel(sprintf('residuals [%s]',multi))
-t=text(-0.95*nstd*stdd,0.75*ax.YLim(2),...
+t=text(0.95*ax.XLim(1),0.75*ax.YLim(2),...
        sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
                     length(data),stdd,median(data),mean(data),gof));
 hold on
@@ -339,8 +335,8 @@ pd = fitdist(data,'Normal');
 xvals = b.XData; 
 yvals = pdf(pd,xvals);
 area = sum(b.YData)*diff(b.XData(1:2));
-lain = plot(xvals,yvals*area,'r','LineWidth',2);
-if gof > thresh
+lain = plot(xvals,yvals*area,'LineWidth',2);
+if gof > thresh | abs(mean(data)) > 2
     lain.LineStyle = '--';
 end
 hold off

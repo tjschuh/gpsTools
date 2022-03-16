@@ -22,10 +22,7 @@ function gps2syn(d,tmax,xyz,xyzn,v,vn)
 % gps2syn(d,tmax,[],[],[],[]);
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/15/2022
-
-% TO-DO
-% add +/- 2cm normal distribution to ship positions
+% Last modified by tschuh-at-princeton.edu, 03/16/2022
 
 % C-DOG location [x,y,z] [m]
 [x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
@@ -50,14 +47,24 @@ defval('vn',0)
 counter = 1;
 % unit multipliers across time and space
 tmulti{1,1} = 1e6; tmulti{1,2} = '\mus';
-xmulti{1,1} = 1e-3; xmulti{1,2} = 'mm';
+xmulti{1,1} = 1e-2; xmulti{1,2} = 'cm';
 
 % add xyzn to xyz0 to get perturbed C-DOG location
 xyzg = xyz0 + xyzn*xmulti{1,1};
 % add vn to v0 to get perturbed sound speed
 vg = v0 + vn;
 
+% add uncertainty to ship locations (+/- 0.02 m)
+% draw a number from a normal distribution from -2 to 2
+d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
+for i = 1:length(d.x0)
+    d.x(i) = d.x0(i) + (normrnd(0,2/3)*1e-2);
+    d.y(i) = d.y0(i) + (normrnd(0,2/3)*1e-2);
+    d.z(i) = d.z0(i) + (normrnd(0,2/3)*1e-2);
+end
+
 % forward model: creating perturbed data
+%hsr = sqrt((d.x0-xyzg(1)).^2 + (d.y0-xyzg(2)).^2 + (d.z0-xyzg(3)).^2);
 hsr = sqrt((d.x-xyzg(1)).^2 + (d.y-xyzg(2)).^2 + (d.z-xyzg(3)).^2);
 hst = hsr./vg;
 % error between slant times and predicted slant times

@@ -24,6 +24,8 @@ function gps2syn(d,tmax,xyz,xyzn,v,vn)
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
 % Last modified by tschuh-at-princeton.edu, 03/16/2022
 
+% add Durbin-Watson test
+
 % C-DOG location [x,y,z] [m]
 [x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
 defval('xyz',[x y z])
@@ -199,7 +201,7 @@ figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epsto
 % % optional output
 % varns={ellip};
 % varargout=varns(1:nargout);
-
+keyboard
 function cosmot(t)
 xlim([t(1) t(end)])
 grid on

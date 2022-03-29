@@ -1,5 +1,5 @@
 function varargout=kinpro(prdfile,plt,demean)
-% d=PRD2MAT(prdfile,protype,plt,demean)
+% d=KINPRO(prdfile,protype,plt,demean)
 %
 % Makes/saves/loads a *.prd GNSS Precise Point Positioning solution file
 % (created by PPP2PRD or RTK2PRD) into a structured *.mat file (and plots),
@@ -19,14 +19,14 @@ function varargout=kinpro(prdfile,plt,demean)
 %
 % EXAMPLE:
 %
-% d=prd2mat('kin_28-29_pton.prd',1,1);
+% d=kinpro('kin_28-29_pton.prd',1,1);
 %
 % TESTED ON:
 %
 % R2020a Update 4 (9.8.0.1417392)
 %
 % Originally written by tschuh-at-princeton.edu, 03/04/2022
-% Last modified by tschuh-at-princeton.edu, 03/07/2022
+% Last modified by tschuh-at-princeton.edu, 03/29/2022
 
 % Default file name
 defval('prdfile','kin_28-29_pton.prd')
@@ -119,17 +119,17 @@ if plt == 1
     ah(1)=subplot(4,1,1);
     plot(d.t,d.enu(:,1),'k')
     ylabel('east [m]')
-    cosmoenu(d.enu(:,1),d.t)
+    cosmoenu(d.enu(:,1),d.t,demean)
     
     ah(2)=subplot(4,1,2);
     plot(d.t,d.enu(:,2),'k')
     ylabel('north [m]')
-    cosmoenu(d.enu(:,2),d.t)
+    cosmoenu(d.enu(:,2),d.t,demean)
     
     ah(3)=subplot(4,1,3);
     plot(d.t,d.enu(:,3),'k')
     ylabel('up [m]')
-    cosmoenu(d.enu(:,3),d.t)
+    cosmoenu(d.enu(:,3),d.t,demean)
     
     ah(4)=subplot(4,1,4);
     yyaxis left
@@ -160,10 +160,17 @@ end
 varns={d};
 varargout=varns(1:nargout);
 
-function cosmoenu(data,time)
+function cosmoenu(data,time,demean)
 xlim([time(1) time(end)])
 slack=1.1;
-ylim([min(data)-0.01*abs(min(data)) max(data)+0.01*abs(max(data))])
+if demean == 1
+    multi = 0.01;
+else
+    % this probably could be changed
+    % make 1e-6 a constant that is somehow computed from data
+    multi = 0.001*1e-6;
+end
+ylim([min(data)-multi*abs(min(data)) max(data)+multi*abs(max(data))])
 longticks([],2)
 grid on
 xticklabels([])

@@ -1,5 +1,5 @@
-function varargout=kinpro(prdfile,plt,demean)
-% d=KINPRO(prdfile,protype,plt,demean)
+function varargout=kinpro(prdfile,xyzpos,local,plt,demean)
+% d=KINPRO(prdfile,xyzpos,local,plt,demean)
 %
 % Makes/saves/loads a *.prd GNSS Precise Point Positioning solution file
 % (created by PPP2PRD or RTK2PRD) into a structured *.mat file (and plots),
@@ -8,6 +8,8 @@ function varargout=kinpro(prdfile,plt,demean)
 % INPUT:
 %
 % prdfile      string with filename (e.g. 'kin_28-29_pton.prd')
+% xyzpos       approximate position xyz of station copied from RINEX header
+% local        string with GNSS station timezone    
 % plt          0 for no plot, 1 for plot (default: 1)
 % demean       0 for no demeaning, 1 for demeaning ENU data (default: 0)
 %
@@ -19,7 +21,8 @@ function varargout=kinpro(prdfile,plt,demean)
 %
 % EXAMPLE:
 %
-% d=kinpro('kin_28-29_pton.prd',1,1);
+% d=kinpro('kin_28-29_pton.prd',[1288235.7406 -4694422.9216 4107355.8820],'America/New_York',1,0);
+% kinpro('kin_2018230-2018231_raul.prd',[-5566082.7400 -201282.8434 -3097636.2460],'Pacific/Tongatapu',1,0)
 %
 % TESTED ON:
 %
@@ -46,11 +49,6 @@ defval('demean',0)
 if exist(outfile1,'file')==0
     % station information from RINEX file
     % approx position [m]
-    x0 = 1288235.7406;
-    y0 = -4694422.9216;
-    z0 = 4107355.8820;
-    % local timezone
-    local = 'America/New_York';
     
     % explicitly define header from *.kin
     h = {'t','enu','nsats','pdop'};
@@ -69,13 +67,13 @@ if exist(outfile1,'file')==0
     % convert tstr to datetime
     t=datetime([ymd repmat(' ',size(ymd,1),1) hms],...
                'InputFormat','dd-MMM-yyyy HH:mm:ss','TimeZone',local);
-    % convert EST local time to UTC
+    % convert local time to UTC
     t.TimeZone = 'Z';
 
     % convert x,y,z to east-west,north-south,up-down (ENU)
     % using wgs84 and station reference location
     wgs84 = wgs84Ellipsoid('meter');
-    [lat0,lon0,h0] = ecef2geodetic(wgs84,x0,y0,z0);
+    [lat0,lon0,h0] = ecef2geodetic(wgs84,xyzpos(1),xyzpos(2),xyzpos(3));
     [E,N,U] = ecef2enu(dm(:,3),dm(:,4),dm(:,5),lat0,lon0,h0,wgs84);
 
     % get rid of sat cols that are all zeros
@@ -116,20 +114,21 @@ if plt == 1
         
     f=figure;
     f.Position=[70 120 560 685];
+
     ah(1)=subplot(4,1,1);
     plot(d.t,d.enu(:,1),'k')
     ylabel('east [m]')
-    cosmoenu(d.enu(:,1),d.t,demean)
+    cosmoenu(d.enu(:,1),d.t)
     
     ah(2)=subplot(4,1,2);
     plot(d.t,d.enu(:,2),'k')
     ylabel('north [m]')
-    cosmoenu(d.enu(:,2),d.t,demean)
+    cosmoenu(d.enu(:,2),d.t)
     
     ah(3)=subplot(4,1,3);
     plot(d.t,d.enu(:,3),'k')
     ylabel('up [m]')
-    cosmoenu(d.enu(:,3),d.t,demean)
+    cosmoenu(d.enu(:,3),d.t)
     
     ah(4)=subplot(4,1,4);
     yyaxis left
@@ -153,6 +152,9 @@ if plt == 1
     longticks([],2)
     %tl(4)=title('Total Number of Satellites and PDOP');
 
+    tt=supertit(ah(1),sprintf('Station Position: [%.4f %.4f %.4f] m\nTime Zone: %s',xyzpos(1),xyzpos(2),xyzpos(3),local));
+movev(tt,0.1)
+    
     figdisp(fname,[],[],2,[],'epstopdf')
 end
     
@@ -160,16 +162,10 @@ end
 varns={d};
 varargout=varns(1:nargout);
 
-function cosmoenu(data,time,demean)
+function cosmoenu(data,time)
 xlim([time(1) time(end)])
 slack=1.1;
-if demean == 1
-    multi = 0.01;
-else
-    % this probably could be changed
-    % make 1e-6 a constant that is somehow computed from data
-    multi = 0.001*1e-6;
-end
+multi = 0.01;
 ylim([min(data)-multi*abs(min(data)) max(data)+multi*abs(max(data))])
 longticks([],2)
 grid on

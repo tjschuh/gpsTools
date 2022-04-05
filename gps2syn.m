@@ -1,5 +1,5 @@
-function gps2syn(d,tmax,xyz,xyzn,v,vn)
-% GPS2SYN(d,tmax,xyz,xyzn,v,vn)
+function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
+% dw = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
@@ -16,15 +16,21 @@ function gps2syn(d,tmax,xyz,xyzn,v,vn)
 % v            sound speed [m/s]
 % vn           perturbation in sound speed [m/s]
 %
+% OUTPUT:
+%
+% dw           Durbin-Watson test result
+%
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% gps2syn(d,tmax,[],[],[],[]);
+% xyzn=mesh(6,2);
+% for i=1:length(xyzn)
+% dw=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
+% xyzmat(i,:) = [xyzn(i,:) dw];
+% end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 03/16/2022
-
-% add Durbin-Watson test
+% Last modified by tschuh-at-princeton.edu, 04/05/2022
 
 % C-DOG location [x,y,z] [m]
 [x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
@@ -49,7 +55,7 @@ defval('vn',0)
 counter = 1;
 % unit multipliers across time and space
 tmulti{1,1} = 1e6; tmulti{1,2} = '\mus';
-xmulti{1,1} = 1e-2; xmulti{1,2} = 'cm';
+xmulti{1,1} = 1e-3; xmulti{1,2} = 'mm';
 
 % add xyzn to xyz0 to get perturbed C-DOG location
 xyzg = xyz0 + xyzn*xmulti{1,1};
@@ -75,6 +81,22 @@ differ = st-hst;
 rel = differ./st;
 % calculate rms(st-hst)
 rmse = norm(differ(rows));
+
+% Durbin-Watson test to see if residuals (differ) are uncorrelated
+% 0 <= dw <= 4, best result is dw = 2
+% 1.5 <= dw <= 2.5 --> residuals are uncorrelated 
+dwdata = differ;
+dwdata(any(isnan(dwdata),2),:)=[];
+% calculate sum of differ^2
+denom = sum(dwdata.^2);
+% calculate sum of (differ(i+1)-differ(i))^2
+dd = diff(dwdata);
+for j=1:length(dd)
+    dd2(j) = dd(j)^2;
+end
+numer = sum(dd2);
+% dw = the ratio of those two sums
+dw = numer/denom;
 
 figure(1)
 clf
@@ -127,6 +149,8 @@ try
     c.FaceColor = [0.8500 0.3250 0.0980];
     lain2.Color = 'red';
     title('Absolute Time Differences')
+    text(ah(4).XLim(2)-0.3*abs(ah(4).XLim(2)-ah(4).XLim(1)),0.9*ah(4).YLim(2),...
+       sprintf('dw = %.3f',dw));
 catch
 end
 
@@ -198,10 +222,10 @@ figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epsto
 %     figdisp(sprintf('ellipsoid'),[],[],2,[],'epstopdf')
 % end
 
-% % optional output
-% varns={ellip};
-% varargout=varns(1:nargout);
-keyboard
+% optional output
+varns={dw};
+varargout=varns(1:nargout);
+
 function cosmot(t)
 xlim([t(1) t(end)])
 grid on

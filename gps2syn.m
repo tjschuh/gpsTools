@@ -1,5 +1,5 @@
 function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
-% dw = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
+% [pval,dw,stda] = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
@@ -18,15 +18,17 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
 %
 % OUTPUT:
 %
+% pval         Durbin-Watson p-value
 % dw           Durbin-Watson test result
-%
+% stda         standard deviation of absolute time differences
+% 
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
 % xyzn=mesh(6,2);
 % for i=1:length(xyzn)
-% dw=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
-% xyzmat(i,:) = [xyzn(i,:) dw];
+% [pval,dw,stda]=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
+% mat(i,:) = [xyzn(i,:) pval dw stda];
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
@@ -84,20 +86,16 @@ rmse = norm(differ(rows));
 
 % Durbin-Watson test to see if residuals (differ) are uncorrelated
 % 0 <= dw <= 4, best result is dw = 2
-% 1.5 <= dw <= 2.5 --> residuals are uncorrelated 
+% 1.5 <= dw <= 2.5 --> residuals are uncorrelated
+% also want a p-value > 0.05
 dwdata = differ;
 dwdata(any(isnan(dwdata),2),:)=[];
-% calculate sum of differ^2
-denom = sum(dwdata.^2);
-% calculate sum of (differ(i+1)-differ(i))^2
-dd = diff(dwdata);
-for j=1:length(dd)
-    dd2(j) = dd(j)^2;
-end
-numer = sum(dd2);
-% dw = the ratio of those two sums
-dw = numer/denom;
+% use dwtest with design matrix full of ones
+[pval,dw] = dwtest(dwdata,ones(length(dwdata),1));
+% set threshold
+pthresh = 0.05;
 
+% plotting
 figure(1)
 clf
 lwidth = 1.5;
@@ -120,21 +118,31 @@ ah(2)=subplot(2,4,[5 6]);
 times = seconds(d.t(rows)-d.t(rows(1)));
 pf = polyfit(times,differ(rows),1);
 bfline = polyval(pf,times);
-p(3)=plot(d.t(rows),bfline*tmulti{1,1},'LineWidth',lwidth);
+p(3)=plot(d.t,differ*tmulti{1,1},'color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
 hold on
-p(4)=plot(d.t,differ*tmulti{1,1},'LineWidth',lwidth);
+p(4)=plot(d.t(rows),bfline*tmulti{1,1},'b','LineWidth',lwidth);
 hold off
 datetick('x','HH')
 cosmot(d.t)
+ylim(1.1*[-max(abs(differ*tmulti{1,1})) max(abs(differ*tmulti{1,1}))])
 title('Difference between st and hst')
 ylabel(sprintf('slant range time [%s]',tmulti{1,2}))
 xlabel('time [h]')
+text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+     sprintf('dw = %.3f, p = %.3g',dw,pval));
+if pval >= pthresh
+    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('ACCEPTED'))
+else
+    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('REJECTED'))
+end
 
 % plot histogram of relative time differences
 ah(3)=subplot(2,4,[3 4]);
 try
     thresh1=500;
-    [b,lain1,gof1]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
+    [b,lain1,gof1,stdr]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
     b.FaceColor = [0.400 0.6667 0.8431];
     lain1.Color = 'blue';
     title('Relative Time Differences')
@@ -145,12 +153,10 @@ end
 ah(4)=subplot(2,4,[7 8]);
 try
     thresh2=500;
-    [c,lain2,gof2]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2});
+    [c,lain2,gof2,stda]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2});
     c.FaceColor = [0.8500 0.3250 0.0980];
     lain2.Color = 'red';
     title('Absolute Time Differences')
-    text(ah(4).XLim(2)-0.3*abs(ah(4).XLim(2)-ah(4).XLim(1)),0.9*ah(4).YLim(2),...
-       sprintf('dw = %.3f',dw));
 catch
 end
 
@@ -162,11 +168,11 @@ end
 %GDOP = sqrt(trace(Q));
 %end
 
-tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|\nVelocity Perturbation = %g m/s',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},abs(v0-vg)));
+tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|, True Sound Speed = %g m/s\nSound Speed Error = %g m/s, GPS Perturbations = +/-[2 cm 2 cm 2 cm]',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},v0,vg-v0));
 tt.FontSize = 12;
 movev(tt,0.325);
 
-figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
+%figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
 
     % %trajectory of ship w/ C-DOG
     %     skp=1000;
@@ -223,9 +229,9 @@ figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epsto
 % end
 
 % optional output
-varns={dw};
+varns={pval,dw,stda};
 varargout=varns(1:nargout);
-
+keyboard
 function cosmot(t)
 xlim([t(1) t(end)])
 grid on
@@ -237,7 +243,7 @@ longticks
 xlim([-10 10])
 ylim([-10 10])
 
-function [b,lain,gof]=cosmoh(data,ax,thresh,multi)
+function [b,lain,gof,stdd]=cosmoh(data,ax,thresh,multi)
 nbins=round((max(data)-min(data))/(2*iqr(data)*(length(data))^(-1/3)));
 % calculate goodness of fit (gof) compared to a normal distribution
 [~,~,stats]=chi2gof(data,'NBins',nbins);

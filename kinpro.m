@@ -1,5 +1,5 @@
-function varargout=kinpro(prdfile,xyzpos,local,plt,demean)
-% d=KINPRO(prdfile,xyzpos,local,plt,demean)
+function varargout=kinpro(prdfile,xyzpos,plt,demean)
+% d=KINPRO(prdfile,xyzpos,plt,demean)
 %
 % Makes/saves/loads a *.prd GNSS Precise Point Positioning solution file
 % (created by PPP2PRD or RTK2PRD) into a structured *.mat file (and plots),
@@ -9,7 +9,6 @@ function varargout=kinpro(prdfile,xyzpos,local,plt,demean)
 %
 % prdfile      string with filename (e.g. 'kin_28-29_pton.prd')
 % xyzpos       approximate position xyz of station copied from RINEX header
-% local        string with GNSS station timezone    
 % plt          0 for no plot, 1 for plot (default: 1)
 % demean       0 for no demeaning, 1 for demeaning ENU data (default: 0)
 %
@@ -21,8 +20,8 @@ function varargout=kinpro(prdfile,xyzpos,local,plt,demean)
 %
 % EXAMPLE:
 %
-% d=kinpro('kin_28-29_pton.prd',[1288235.7406 -4694422.9216 4107355.8820],'America/New_York',1,0);
-% kinpro('kin_2018230-2018231_raul.prd',[-5566082.7400 -201282.8434 -3097636.2460],'Pacific/Tongatapu',1,0)
+% d=kinpro('kin_28-29_pton.prd',[1288235.7406 -4694422.9216 4107355.8820],1,0);
+% kinpro('kin_2018230-2018231_raul.prd',[-5566082.7400 -201282.8434 -3097636.2460],1,0)
 %
 % TESTED ON:
 %
@@ -66,9 +65,10 @@ if exist(outfile1,'file')==0
     hms=datestr(seconds(dm(:,2)),'HH:MM:SS');
     % convert tstr to datetime
     t=datetime([ymd repmat(' ',size(ymd,1),1) hms],...
-               'InputFormat','dd-MMM-yyyy HH:mm:ss','TimeZone',local);
+               'InputFormat','dd-MMM-yyyy HH:mm:ss');
     % convert local time to UTC
-    t.TimeZone = 'Z';
+    % dont need to convert to UTC b/c RINEX files are in GPS time aka UTC
+    %t.TimeZone = 'Z';
 
     % convert x,y,z to east-west,north-south,up-down (ENU)
     % using wgs84 and station reference location
@@ -152,7 +152,7 @@ if plt == 1
     longticks([],2)
     %tl(4)=title('Total Number of Satellites and PDOP');
 
-    tt=supertit(ah(1),sprintf('Station Position: [%.4f %.4f %.4f] m\nTime Zone: %s',xyzpos(1),xyzpos(2),xyzpos(3),local));
+    tt=supertit(ah(1),sprintf('Station Approx Position: [%.4f %.4f %.4f] m',xyzpos(1),xyzpos(2),xyzpos(3)));
 movev(tt,0.1)
     
     figdisp(fname,[],[],2,[],'epstopdf')

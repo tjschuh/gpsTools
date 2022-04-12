@@ -1,23 +1,21 @@
 function dwplot(d,tmax,data,thresh)
 % DWPLOT(data,thresh)
 %
-% description
+% take in Durbin-Watson test statistics and p-values, and standard
+% deviations corresponding to perturbations in x,y,z from a true
+% C-DOG location and generate 2D contour plots where p-value > thresh
 %
 % INPUT:
 %
-% d
-% tmax
-% data
-% thresh
+% d        x,y,z,t ship positions
+% tmax     start and end times from d.t
+% data     actual data containing x,y,z,dw,p-value,std
+% thresh   p-value threshold [default: 0.05]
 %
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
-% Last modified by tschuh-at-princeton.edu, 04/11/2022
+% Last modified by tschuh-at-princeton.edu, 04/12/2022
 
-% TODO
-% plot 2d contour plots
-% determine how I want to make contours
-
-% make these inputs
+% eventually make these inputs
 v0 = 1500; dv = 0;
 
 % p-value threshold
@@ -27,7 +25,7 @@ defval('thresh',0.05)
 % in other words, reshape size = length(data)^(1/3)
 errsz=nthroot(length(data),3);
 
-figure
+figure(1)
 
 ah(1)=subplot(2,2,1);
 ddxy = data(data(:,3) == 0,:);
@@ -39,7 +37,7 @@ imagesc([xycornx(1,1) xycornx(1,end)],[xycorny(1,1) xycorny(end,1)],errellipxy)
 xlabel('x [mm]')
 ylabel('y [mm]')
 hold off
-cosmo(data(:,1),data(:,2))
+cosmo(ah(1),data(:,1),data(:,2))
 
 ah(2)=subplot(2,2,2);
 ddyz = data(data(:,1) == 0,:);
@@ -50,7 +48,7 @@ imagesc([yzcornx(1,1) yzcornx(1,end)],[yzcorny(1,1) yzcorny(end,1)],errellipyz)
 xlabel('y [mm]')
 ylabel('z [mm]')
 hold off
-cosmo(data(:,2),data(:,3))
+cosmo(ah(2),data(:,2),data(:,3))
 
 ah(3)=subplot(2,2,3);
 ddxz = data(data(:,2) == 0,:);
@@ -61,7 +59,7 @@ imagesc([xzcornx(1,1) xzcornx(1,end)],[xzcorny(1,1) xzcorny(end,1)],errellipxz)
 xlabel('x [mm]')
 ylabel('z [mm]')
 hold off
-cosmo(data(:,1),data(:,3))
+cosmo(ah(3),data(:,1),data(:,3))
 
 % plot ship trajectory w/ C-DOG
 % need xyz0 from gps2fwd if you want to plot C-DOG
@@ -99,15 +97,15 @@ tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g
 tt.FontSize = 11;
 movev(tt,0.2)
 
+% save figure as pdf
 figdisp(sprintf('dwdata-plot'),[],[],2,[],'epstopdf')
 
-keyboard
-
-function cosmo(datax,datay)
+function cosmo(ah,datax,datay)
 %a = colorbar;
 %a.Label.String = 'std [\mus]';
 %a.FontSize = 11;
 %xlim([min(datax) max(datax)])
 %ylim([min(datay) max(datay)])
+ah.YDir = 'normal';    
 grid on
 longticks

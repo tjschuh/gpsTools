@@ -1,4 +1,4 @@
-function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
+function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % xyzpdw = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
@@ -15,6 +15,7 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
 % xyzn         perturbations to beacon location [x y z] [m]
 % v            sound speed [m/s]
 % vn           perturbation in sound speed [m/s]
+% plt          switch to turn on/off plotting [default: 0 (off)]
 %
 % OUTPUT:
 %
@@ -26,12 +27,15 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
 % load Unit1234-camp.mat
 % xyzn=mesh(6,2);
 % for i=1:length(xyzn)
-% xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
+% xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
 % Last modified by tschuh-at-princeton.edu, 04/11/2022
 
+% default plotting is off
+defval('plt',0)
+    
 % C-DOG location [x,y,z] [m]
 [x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
 defval('xyz',[x y z])
@@ -91,84 +95,87 @@ dwdata(any(isnan(dwdata),2),:)=[];
 % set threshold
 pthresh = 0.05;
 
-% plotting
-figure(1)
-clf
-lwidth = 1.5;
+stda=std(differ(rows)*tmulti{1,1});
 
-% plot st and hst
-ah(1)=subplot(2,4,[1 2]);
-p(1)=plot(d.t,hst,'-','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
-hold on
-p(2)=plot(d.t,st,'b--','LineWidth',lwidth);
-hold off
-datetick('x','HH')
-xticklabels([])
-cosmot(d.t)
-ylabel('slant range time [s]')
-title('hst and st')
-legend({'hst','st'})
+% plotting only if plt = 1
+if plt == 1
+    figure(1)
+    clf
+    lwidth = 1.5;
 
-% plot absolute time differences
-ah(2)=subplot(2,4,[5 6]);
-times = seconds(d.t(rows)-d.t(rows(1)));
-pf = polyfit(times,differ(rows),1);
-bfline = polyval(pf,times);
-p(3)=plot(d.t,differ*tmulti{1,1},'color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
-hold on
-p(4)=plot(d.t(rows),bfline*tmulti{1,1},'b','LineWidth',lwidth);
-hold off
-datetick('x','HH')
-cosmot(d.t)
-ylim(1.1*[-max(abs(differ*tmulti{1,1})) max(abs(differ*tmulti{1,1}))])
-title('Difference between st and hst')
-ylabel(sprintf('slant range time [%s]',tmulti{1,2}))
-xlabel('time [h]')
-text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-     sprintf('dw = %.3f, p = %.3g',dw,pval));
-if pval >= pthresh
-    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('ACCEPTED'))
-else
-    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('REJECTED'))
-end
+    % plot st and hst
+    ah(1)=subplot(2,4,[1 2]);
+    p(1)=plot(d.t,hst,'-','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
+    hold on
+    p(2)=plot(d.t,st,'b--','LineWidth',lwidth);
+    hold off
+    datetick('x','HH')
+    xticklabels([])
+    cosmot(d.t)
+    ylabel('slant range time [s]')
+    title('hst and st')
+    legend({'hst','st'})
 
-% plot histogram of relative time differences
-ah(3)=subplot(2,4,[3 4]);
-try
-    thresh1=500;
-    [b,lain1,gof1,stdr]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
-    b.FaceColor = [0.400 0.6667 0.8431];
-    lain1.Color = 'blue';
-    title('Relative Time Differences')
-catch
-end
+    % plot absolute time differences
+    ah(2)=subplot(2,4,[5 6]);
+    times = seconds(d.t(rows)-d.t(rows(1)));
+    pf = polyfit(times,differ(rows),1);
+    bfline = polyval(pf,times);
+    p(3)=plot(d.t,differ*tmulti{1,1},'color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
+    hold on
+    p(4)=plot(d.t(rows),bfline*tmulti{1,1},'b','LineWidth',lwidth);
+    hold off
+    datetick('x','HH')
+    cosmot(d.t)
+    ylim(1.1*[-max(abs(differ*tmulti{1,1})) max(abs(differ*tmulti{1,1}))])
+    title('Difference between st and hst')
+    ylabel(sprintf('slant range time [%s]',tmulti{1,2}))
+    xlabel('time [h]')
+    text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('dw = %.3f, p = %.3g',dw,pval));
+    if pval >= pthresh
+        text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+             sprintf('ACCEPTED'))
+    else
+        text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+             sprintf('REJECTED'))
+    end
 
-% plot histogram of absolute time differences
-ah(4)=subplot(2,4,[7 8]);
-try
-    thresh2=500;
-    [c,lain2,gof2,stda]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2});
-    c.FaceColor = [0.8500 0.3250 0.0980];
-    lain2.Color = 'red';
-    title('Absolute Time Differences')
-catch
-end
+    % plot histogram of relative time differences
+    ah(3)=subplot(2,4,[3 4]);
+    try
+        thresh1=500;
+        [b,lain1,gof1,stdr]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
+        b.FaceColor = [0.400 0.6667 0.8431];
+        lain1.Color = 'blue';
+        title('Relative Time Differences')
+    catch
+    end
 
-%DOP
-%for i=1:length(d.x)
-%A = [(d.x(i,1)-xyzg(1)) (d.y(i,1)-xyzg(2)) (d.z(i,1)-xyzg(3))]./hsr(i);
-%A = [A -ones([length(A) 1])];
-%Q = inv(A'*A);
-%GDOP = sqrt(trace(Q));
-%end
+    % plot histogram of absolute time differences
+    ah(4)=subplot(2,4,[7 8]);
+    try
+        thresh2=500;
+        [c,lain2,gof2,stda]=cosmoh(differ(rows)*tmulti{1,1},ah(4),thresh2,tmulti{1,2});
+        c.FaceColor = [0.8500 0.3250 0.0980];
+        lain2.Color = 'red';
+        title('Absolute Time Differences')
+    catch
+    end
 
-tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|, True Sound Speed = %g m/s\nSound Speed Error = %g m/s, GPS Perturbations = +/-[2 cm 2 cm 2 cm]',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},v0,vg-v0));
-tt.FontSize = 12;
-movev(tt,0.325);
+    %DOP
+    %for i=1:length(d.x)
+    %A = [(d.x(i,1)-xyzg(1)) (d.y(i,1)-xyzg(2)) (d.z(i,1)-xyzg(3))]./hsr(i);
+    %A = [A -ones([length(A) 1])];
+    %Q = inv(A'*A);
+    %GDOP = sqrt(trace(Q));
+    %end
 
-figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
+    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|, True Sound Speed = %g m/s\nSound Speed Error = %g m/s, GPS Perturbations = +/-[2 cm 2 cm 2 cm]',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},v0,vg-v0));
+    tt.FontSize = 12;
+    movev(tt,0.325);
+
+    figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
 
     % %trajectory of ship w/ C-DOG
     %     skp=1000;
@@ -208,21 +215,7 @@ figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epsto
     %g.Visible = 'on';
     %figdisp(sprintf('trials'),[],[],2,[],'epstopdf')
     %close
-
-% if ellip exists, plot it
-% if exist('ellip','var') == 1
-%     figure(3)
-%     % maybe plot with contours?
-%     scatter3(ellip(:,1)*xmulti{1,1},ellip(:,2)*xmulti{1,1},ellip(:,3)*xmulti{1,1},sz,'filled')
-%     xlim([-10 10])
-%     ylim([-10 10])
-%     zlim([-10 10])
-%     xlabel(sprintf('perturbations in x [%s]',xmulti{1,2}))
-%     ylabel(sprintf('perturbations in y [%s]',xmulti{1,2}))
-%     zlabel(sprintf('perturbations in z [%s]',xmulti{1,2}))
-    
-%     figdisp(sprintf('ellipsoid'),[],[],2,[],'epstopdf')
-% end
+end
 
 % save some results
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
@@ -230,7 +223,7 @@ xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
 % optional output
 varns={xyzdwp};
 varargout=varns(1:nargout);
-%keyboard
+
 function cosmot(t)
 xlim([t(1) t(end)])
 grid on

@@ -10,7 +10,7 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
 % INPUT:
 %
 % d            single dataset with x,y,z,t ship locations
-% tmax         last time in d
+% tmax         first and last time in d [2x1 datetime array]
 % xyz          beacon location [x y z] [m]
 % xyzn         perturbations to beacon location [x y z] [m]
 % v            sound speed [m/s]
@@ -98,15 +98,15 @@ lwidth = 1.5;
 
 % plot st and hst
 ah(1)=subplot(2,4,[1 2]);
-p(1)=plot(d.t,hst,'--','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
+p(1)=plot(d.t,hst,'-','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
 hold on
-p(2)=plot(d.t,st,'b-','LineWidth',lwidth);
+p(2)=plot(d.t,st,'b--','LineWidth',lwidth);
 hold off
 datetick('x','HH')
 xticklabels([])
 cosmot(d.t)
 ylabel('slant range time [s]')
-title('st and hst')
+title('hst and st')
 legend({'hst','st'})
 
 % plot absolute time differences

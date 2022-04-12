@@ -15,6 +15,11 @@ function dwplot(d,tmax,data,thresh)
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
 % Last modified by tschuh-at-princeton.edu, 04/12/2022
 
+% to do
+% use contourf on top of plots to show p > 0.05, p > 0.025, etc
+% caxis([]) sets colorbar axis
+% maybe add thresh value to title
+
 % eventually make these inputs
 v0 = 1500; dv = 0;
 
@@ -27,15 +32,19 @@ errsz=nthroot(length(data),3);
 
 figure(1)
 
+% change this to a for loop
 ah(1)=subplot(2,2,1);
 ddxy = data(data(:,3) == 0,:);
 xycornx = reshape(ddxy(:,1),errsz.*[1 1]);
 xycorny = reshape(ddxy(:,2),errsz.*[1 1]);
 errellipxy=reshape([ddxy(:,5) > thresh].*ddxy(:,6),errsz.*[1 1]);
+% need to set 0s to NaNs to have colorbar ignore them
+%errellipxy(errellipxy==0)=NaN;
 imagesc([xycornx(1,1) xycornx(1,end)],[xycorny(1,1) xycorny(end,1)],errellipxy)
 %title('y vs x')
 xlabel('x [mm]')
 ylabel('y [mm]')
+axis tight equal
 hold off
 cosmo(ah(1),data(:,1),data(:,2))
 
@@ -44,9 +53,11 @@ ddyz = data(data(:,1) == 0,:);
 yzcornx = reshape(ddyz(:,2),errsz.*[1 1]);
 yzcorny = reshape(ddyz(:,3),errsz.*[1 1]);
 errellipyz=reshape([ddyz(:,5) > thresh].*ddyz(:,6),errsz.*[1 1]);
+%errellipyz(errellipyz==0)=NaN;
 imagesc([yzcornx(1,1) yzcornx(1,end)],[yzcorny(1,1) yzcorny(end,1)],errellipyz)
 xlabel('y [mm]')
 ylabel('z [mm]')
+axis tight equal
 hold off
 cosmo(ah(2),data(:,2),data(:,3))
 
@@ -55,12 +66,15 @@ ddxz = data(data(:,2) == 0,:);
 xzcornx = reshape(ddxz(:,1),errsz.*[1 1]);
 xzcorny = reshape(ddxz(:,3),errsz.*[1 1]);
 errellipxz=reshape([ddxz(:,5) > thresh].*ddxz(:,6),errsz.*[1 1]);
+%errellipxz(errellipxz==0)=NaN;
 imagesc([xzcornx(1,1) xzcornx(1,end)],[xzcorny(1,1) xzcorny(end,1)],errellipxz)
 xlabel('x [mm]')
 ylabel('z [mm]')
+axis tight equal
 hold off
 cosmo(ah(3),data(:,1),data(:,3))
 
+% need to enble this to take in data without d.utm
 % plot ship trajectory w/ C-DOG
 % need xyz0 from gps2fwd if you want to plot C-DOG
 ah(4)=subplot(2,2,4);
@@ -96,14 +110,14 @@ hold off
 tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[2 cm 2 cm 2 cm]',v0,dv));
 tt.FontSize = 11;
 movev(tt,0.2)
-
+keyboard
 % save figure as pdf
 figdisp(sprintf('dwdata-plot'),[],[],2,[],'epstopdf')
 
 function cosmo(ah,datax,datay)
-%a = colorbar;
-%a.Label.String = 'std [\mus]';
-%a.FontSize = 11;
+a = colorbar;
+a.Label.String = 'std [\mus]';
+a.FontSize = 11;
 %xlim([min(datax) max(datax)])
 %ylim([min(datay) max(datay)])
 ah.YDir = 'normal';    

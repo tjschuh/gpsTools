@@ -1,5 +1,5 @@
 function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
-% [pval,dw,stda] = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
+% xyzpdw = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
 %
 % This kinda works, plots st and hst, diff(st-hst) and bestfit line,
 % (eventually DOP), ship trajectory with C-DOG location, and histogram of
@@ -18,21 +18,19 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn)
 %
 % OUTPUT:
 %
-% pval         Durbin-Watson p-value
-% dw           Durbin-Watson test result
-% stda         standard deviation of absolute time differences
+% xyzdwp       array containing xyzn, Durbin-Watson test result and p-value, 
+%              and standard deviation of absolute time differences
 % 
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
 % xyzn=mesh(6,2);
 % for i=1:length(xyzn)
-% [pval,dw,stda]=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
-% mat(i,:) = [xyzn(i,:) pval dw stda];
+% xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[]);
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 04/05/2022
+% Last modified by tschuh-at-princeton.edu, 04/11/2022
 
 % C-DOG location [x,y,z] [m]
 [x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
@@ -53,8 +51,6 @@ rows=unique([rowsx;rowsy;rowsz]);
 defval('xyzn',[10 10 10])
 defval('vn',0)
 
-% counter for keeping track of points we care about
-counter = 1;
 % unit multipliers across time and space
 tmulti{1,1} = 1e6; tmulti{1,2} = '\mus';
 xmulti{1,1} = 1e-3; xmulti{1,2} = 'mm';
@@ -102,16 +98,16 @@ lwidth = 1.5;
 
 % plot st and hst
 ah(1)=subplot(2,4,[1 2]);
-p(1)=plot(d.t,st,'-','LineWidth',lwidth);
+p(1)=plot(d.t,hst,'--','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
 hold on
-p(2)=plot(d.t,hst,'--','LineWidth',lwidth);
+p(2)=plot(d.t,st,'b-','LineWidth',lwidth);
 hold off
 datetick('x','HH')
 xticklabels([])
 cosmot(d.t)
 ylabel('slant range time [s]')
 title('st and hst')
-legend({'st','hst'})
+legend({'hst','st'})
 
 % plot absolute time differences
 ah(2)=subplot(2,4,[5 6]);
@@ -172,7 +168,7 @@ tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3
 tt.FontSize = 12;
 movev(tt,0.325);
 
-%figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
+figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
 
     % %trajectory of ship w/ C-DOG
     %     skp=1000;
@@ -228,10 +224,13 @@ movev(tt,0.325);
 %     figdisp(sprintf('ellipsoid'),[],[],2,[],'epstopdf')
 % end
 
+% save some results
+xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
+
 % optional output
-varns={pval,dw,stda};
+varns={xyzdwp};
 varargout=varns(1:nargout);
-keyboard
+%keyboard
 function cosmot(t)
 xlim([t(1) t(end)])
 grid on

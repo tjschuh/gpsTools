@@ -31,7 +31,7 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 04/12/2022
+% Last modified by tschuh-at-princeton.edu, 04/15/2022
 
 % default plotting is off
 defval('plt',0)
@@ -65,14 +65,14 @@ xyzg = xyz0 + xyzn*xmulti{1,1};
 vg = v0 + vn;
 
 % add uncertainty to ship locations (+/- 0.02 m)
-% draw a number from a normal distribution from -2 to 2
+% draw a number from a normal distribution with std = 2
 % this is incorrect --> need to change std 2/3 --> 2
 % also change z to have larger std b/c that's what we observed
 d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
 for i = 1:length(d.x0)
-    d.x(i) = d.x0(i) + (normrnd(0,2/3)*1e-2);
-    d.y(i) = d.y0(i) + (normrnd(0,2/3)*1e-2);
-    d.z(i) = d.z0(i) + (normrnd(0,2/3)*1e-2);
+    d.x(i) = d.x0(i) + (normrnd(0,2)*1e-2);
+    d.y(i) = d.y0(i) + (normrnd(0,2)*1e-2);
+    d.z(i) = d.z0(i) + (normrnd(0,2)*1e-2);
 end
 
 % forward model: creating perturbed data

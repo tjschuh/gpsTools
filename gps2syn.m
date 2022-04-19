@@ -34,6 +34,10 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
 % Last modified by tschuh-at-princeton.edu, 04/19/2022
 
+% to do:
+% need to edit GPS perturbations s.t. std = 2 = sqrt(std(x).^2 + std(y).^2 + std(z).^2)
+% only use cross planes 
+
 % default plotting is off
 defval('plt',0)
     
@@ -66,16 +70,15 @@ xyzg = xyz0 + xyzn*xmulti{1,1};
 vg = v0 + vn;
 
 % add uncertainty to ship locations (+/- 0.02 m)
-% draw a number from a normal distribution with std = 2
-% also change z to have larger std b/c that's what we observed
-% get rid of for loop --> use tic toc to test speed difference
-% make (2,2,4) an input
+% got rid of loop and sped this up
+xstd = 2;
+ystd = 2;
+zstd = 4;
+permulti{1,1} = 1e-2; permulti{1,2} = 'cm'; 
 d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
-for i = 1:length(d.x0)
-    d.x(i) = d.x0(i) + (normrnd(0,2)*1e-2);
-    d.y(i) = d.y0(i) + (normrnd(0,2)*1e-2);
-    d.z(i) = d.z0(i) + (normrnd(0,4)*1e-2);
-end
+d.x = d.x0 + xstd.*randn(length(d.x0),1).*permulti{1,1};
+d.y = d.y0 + ystd.*randn(length(d.y0),1).*permulti{1,1};
+d.z = d.z0 + zstd.*randn(length(d.z0),1).*permulti{1,1};
 
 % forward model: creating perturbed data
 %hsr = sqrt((d.x0-xyzg(1)).^2 + (d.y0-xyzg(2)).^2 + (d.z0-xyzg(3)).^2);
@@ -122,21 +125,29 @@ if plt == 1
 
     % plot absolute time differences
     ah(2)=subplot(2,4,[5 6]);
-    times = seconds(d.t(rows)-d.t(rows(1)));
-    pf = polyfit(times,differ(rows),1);
-    bfline = polyval(pf,times);
+    %times = seconds(d.t(rows)-d.t(rows(1)));
+    %pf = polyfit(times,differ(rows),1);
+    %bfline = polyval(pf,times);
     p(3)=plot(d.t,differ*tmulti{1,1},'color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
     hold on
-    p(4)=plot(d.t(rows),bfline*tmulti{1,1},'b','LineWidth',lwidth);
+    %p(4)=plot(d.t(rows),bfline*tmulti{1,1},'b','LineWidth',lwidth);
+    p(4)=plot(d.t,movmean(differ*tmulti{1,1},3600,'omitnan'),'b','LineWidth',lwidth);
     hold off
     datetick('x','HH')
     cosmot(d.t)
-    ylim(1.1*[-max(abs(differ*tmulti{1,1})) max(abs(differ*tmulti{1,1}))])
+    if nansum(differ) ~= 0
+        ylim(1.1*[-max(abs(differ*tmulti{1,1})) max(abs(differ*tmulti{1,1}))])
+    end
     title('Difference between st and hst')
     ylabel(sprintf('slant range time [%s]',tmulti{1,2}))
     xlabel('time [h]')
-    text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('dw = %.3f, p = %.3g',dw,pval));
+    if pval >= 1e-15
+        text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+             sprintf('dw = %.3f, p = %.3g',dw,pval));
+    else
+        text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+             sprintf('dw = %.3f, p = 0',dw));
+    end
     if pval >= pthresh
         text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
              sprintf('ACCEPTED'))
@@ -175,7 +186,7 @@ if plt == 1
     %GDOP = sqrt(trace(Q));
     %end
 
-    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|, True Sound Speed = %g m/s\nSound Speed Error = %g m/s, GPS Perturbations = +/-[2 cm 2 cm 2 cm]',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},v0,vg-v0));
+    tt=supertit(ah([1 3]),sprintf('Distance from Truth = [%g %s %g %s %g %s] = |%3.3f %s|, True Sound Speed = %g m/s\nSound Speed Error = %g m/s, GPS Perturbations = +/-[%g %s %g %s %g %s], p-value > %g',xyzn(1),xmulti{1,2},xyzn(2),xmulti{1,2},xyzn(3),xmulti{1,2},sqrt(xyzn(1)^2+xyzn(2)^2+xyzn(3)^2),xmulti{1,2},v0,vg-v0,xstd,permulti{1,2},ystd,permulti{1,2},zstd,permulti{1,2},pthresh));
     tt.FontSize = 12;
     movev(tt,0.325);
 
@@ -223,7 +234,7 @@ end
 
 % save some results
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
-
+keyboard
 % optional output
 varns={xyzdwp};
 varargout=varns(1:nargout);

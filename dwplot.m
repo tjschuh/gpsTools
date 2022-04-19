@@ -1,5 +1,5 @@
-function dwplot(d,tmax,data,thresh)
-% DWPLOT(d,tmax,data,thresh)
+function dwplot(d,data,thresh)
+% DWPLOT(d,data,thresh)
 %
 % take in Durbin-Watson test statistics and p-values, and standard
 % deviations corresponding to perturbations in x,y,z from a true
@@ -8,7 +8,6 @@ function dwplot(d,tmax,data,thresh)
 % INPUT:
 %
 % d        x,y,z,t ship positions
-% tmax     start and end times from d.t
 % data     actual data containing x,y,z,dw,p-value,std
 % thresh   p-value threshold [default: 0.05]
 %
@@ -21,7 +20,7 @@ function dwplot(d,tmax,data,thresh)
 % run gps2syn.m first
 % pmat = [0 0.005 0.01 0.025 0.05 0.075 0.1 0.25 0.5];
 % for i=1:length(pmat)
-% dwplot(d,tmax,xyzdwp,pmat(i))
+% dwplot(d,xyzdwp,pmat(i))
 % end
 %    
 % Originally written by tschuh-at-princeton.edu, 04/05/2022

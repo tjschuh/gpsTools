@@ -1,5 +1,5 @@
 function dwplot(d,tmax,data,thresh)
-% DWPLOT(data,thresh)
+% DWPLOT(d,tmax,data,thresh)
 %
 % take in Durbin-Watson test statistics and p-values, and standard
 % deviations corresponding to perturbations in x,y,z from a true
@@ -12,13 +12,23 @@ function dwplot(d,tmax,data,thresh)
 % data     actual data containing x,y,z,dw,p-value,std
 % thresh   p-value threshold [default: 0.05]
 %
+% OUTPUT:
+%
+% 2x2 subplot with error ellipses
+%    
+% EXAMPLES:
+%
+% run gps2syn.m first
+% pmat = [0 0.005 0.01 0.025 0.05 0.075 0.1 0.25 0.5];
+% for i=1:length(pmat)
+% dwplot(d,tmax,xyzdwp,pmat(i))
+% end
+%    
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
-% Last modified by tschuh-at-princeton.edu, 04/12/2022
+% Last modified by tschuh-at-princeton.edu, 04/19/2022
 
-% to do
-% use contourf on top of plots to show p > 0.05, p > 0.025, etc
-% caxis([]) sets colorbar axis
-% maybe add thresh value to title
+% to do:
+% need to make [2 cm 2 cm 4 cm] an input somehow
 
 % eventually make these inputs
 v0 = 1500; dv = 0;
@@ -31,95 +41,103 @@ defval('thresh',0.05)
 errsz=nthroot(length(data),3);
 
 figure(1)
+clf
 
-% change this to a for loop
-ah(1)=subplot(2,2,1);
-ddxy = data(data(:,3) == 0,:);
-xycornx = reshape(ddxy(:,1),errsz.*[1 1]);
-xycorny = reshape(ddxy(:,2),errsz.*[1 1]);
-errellipxy=reshape([ddxy(:,5) > thresh].*ddxy(:,6),errsz.*[1 1]);
-% need to set 0s to NaNs to have colorbar ignore them
-%errellipxy(errellipxy==0)=NaN;
-imagesc([xycornx(1,1) xycornx(1,end)],[xycorny(1,1) xycorny(end,1)],errellipxy)
-%title('y vs x')
-xlabel('x [mm]')
-ylabel('y [mm]')
-axis tight equal
-hold off
-cosmo(ah(1),data(:,1),data(:,2))
+% make lookup table
+index = [3 1 2; 1 2 3; 2 1 3];
+labels = {'x' 'y'; 'y' 'z'; 'x' 'z'};
 
-ah(2)=subplot(2,2,2);
-ddyz = data(data(:,1) == 0,:);
-yzcornx = reshape(ddyz(:,2),errsz.*[1 1]);
-yzcorny = reshape(ddyz(:,3),errsz.*[1 1]);
-errellipyz=reshape([ddyz(:,5) > thresh].*ddyz(:,6),errsz.*[1 1]);
-%errellipyz(errellipyz==0)=NaN;
-imagesc([yzcornx(1,1) yzcornx(1,end)],[yzcorny(1,1) yzcorny(end,1)],errellipyz)
-xlabel('y [mm]')
-ylabel('z [mm]')
-axis tight equal
-hold off
-cosmo(ah(2),data(:,2),data(:,3))
+% plot error ellipse for each coordinate pair
+for i=1:3
+    ah(i)=subplot(2,2,i);
+    % hold 1 variable constant 0 and work with other 2
+    dd = data(data(:,index(i,1)) == 0,:);
+    % define corners for mesh grid
+    cornx = reshape(dd(:,index(i,2)),errsz.*[1 1]);
+    corny = reshape(dd(:,index(i,3)),errsz.*[1 1]);
+    % error ellipse are rows where p-value > thresh
+    errellip = reshape([dd(:,5) > thresh].*dd(:,6),errsz.*[1 1]);
+    % need to set 0s to NaNs and then cosmo will turn them white
+    errellip(errellip==0) = NaN;
+    % actually make colormap of error ellipse
+    % caxis([ ]) sets limits on colorbar
+    isc = imagesc([cornx(1,1) cornx(1,end)],[corny(1,1) corny(end,1)],errellip);
+    xlabel(sprintf('%s [mm]',labels{i,1}))
+    ylabel(sprintf('%s [mm]',labels{i,2}))
+    axis tight equal
+    hold off
+    cosmo(ah(i),isc,errellip)
 
-ah(3)=subplot(2,2,3);
-ddxz = data(data(:,2) == 0,:);
-xzcornx = reshape(ddxz(:,1),errsz.*[1 1]);
-xzcorny = reshape(ddxz(:,3),errsz.*[1 1]);
-errellipxz=reshape([ddxz(:,5) > thresh].*ddxz(:,6),errsz.*[1 1]);
-%errellipxz(errellipxz==0)=NaN;
-imagesc([xzcornx(1,1) xzcornx(1,end)],[xzcorny(1,1) xzcorny(end,1)],errellipxz)
-xlabel('x [mm]')
-ylabel('z [mm]')
-axis tight equal
-hold off
-cosmo(ah(3),data(:,1),data(:,3))
+    % was trying something with contourf
+    %contourf(cornx,corny,errellip)
+end
 
-% need to enble this to take in data without d.utm
 % plot ship trajectory w/ C-DOG
 % need xyz0 from gps2fwd if you want to plot C-DOG
 ah(4)=subplot(2,2,4);
-skp=1000;
-zex=d.utme(1:skp:end);
-zwi=d.utmn(1:skp:end);
-refx=min(d.utme);
-refy=min(d.utmn);
-sclx=1000;
-scly=1000;
-plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
-hold on
-scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
-        'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
-%wgs84 = wgs84Ellipsoid('meter');
-%[lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
-%[dogx,dogy,~] = deg2utm(lat,mod(lon,360));
-box on
-grid on
-longticks([],2)
-xl(2)=xlabel('easting [km]');
-yl(2)=ylabel('northing [km]');
-openup(ah(4),5,10);
-openup(ah(4),6,10);
-%scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
-%        'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
-%[lat,lon,~] = ecef2geodetic(wgs84,xyzg(1),xyzg(2),xyzg(3));
-%[fakex,fakey,~] = deg2utm(lat,mod(lon,360));
-%scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
-%        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
-hold off
+if isfield(d,'utme') == 1
+    skp=1000;
+    zex=d.utme(1:skp:end);
+    zwi=d.utmn(1:skp:end);
+    refx=min(d.utme);
+    refy=min(d.utmn);
+    sclx=1000;
+    scly=1000;
+    plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
+    hold on
+    scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
+            'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
+    %wgs84 = wgs84Ellipsoid('meter');
+    %[lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
+    %[dogx,dogy,~] = deg2utm(lat,mod(lon,360));
+    box on
+    grid on
+    longticks([],2)
+    xl(2)=xlabel('easting [km]');
+    yl(2)=ylabel('northing [km]');
+    openup(ah(4),5,10);
+    openup(ah(4),6,10);
+    %scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
+    %        'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
+    %[lat,lon,~] = ecef2geodetic(wgs84,xyzg(1),xyzg(2),xyzg(3));
+    %[fakex,fakey,~] = deg2utm(lat,mod(lon,360));
+    %scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
+    %        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
+    hold off
+else
+    sclx=1000;
+    scly=1000;
+    plot(d.x/sclx,d.y/scly,'LineWidth',1,'Color','k')
+    hold on
+    box on
+    grid on
+    longticks([],2)
+    xl(2)=xlabel('easting [km]');
+    yl(2)=ylabel('northing [km]');
+    openup(ah(4),5,10);
+    openup(ah(4),6,10);
+    scatter(0,0,20,'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
+    hold off
+end
 
-tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[2 cm 2 cm 2 cm]',v0,dv));
+% need to make [2 cm 2 cm 4 cm] an input somehow
+tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[2 cm 2 cm 4 cm], p-value > %g',v0,dv,thresh));
 tt.FontSize = 11;
 movev(tt,0.2)
-keyboard
-% save figure as pdf
-figdisp(sprintf('dwdata-plot'),[],[],2,[],'epstopdf')
 
-function cosmo(ah,datax,datay)
+% save figure as pdf
+figdisp(sprintf('dwdata-plot-%03d',1000*thresh),[],[],2,[],'epstopdf')
+
+function cosmo(ah,isc,iscdata)
 a = colorbar;
 a.Label.String = 'std [\mus]';
 a.FontSize = 11;
-%xlim([min(datax) max(datax)])
-%ylim([min(datay) max(datay)])
 ah.YDir = 'normal';    
 grid on
 longticks
+% set NaNs to white when plotting
+if ndims(iscdata) == 2
+    set(isc,'AlphaData',~isnan(iscdata))
+elseif ndims(iscdata) == 3
+    set(isc,'AlphaData',~isnan(iscdata(:,:,1)))
+end

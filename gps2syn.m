@@ -68,6 +68,8 @@ vg = v0 + vn;
 % add uncertainty to ship locations (+/- 0.02 m)
 % draw a number from a normal distribution with std = 2
 % also change z to have larger std b/c that's what we observed
+% get rid of for loop --> use tic toc to test speed difference
+% make (2,2,4) an input
 d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
 for i = 1:length(d.x0)
     d.x(i) = d.x0(i) + (normrnd(0,2)*1e-2);

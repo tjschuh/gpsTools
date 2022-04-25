@@ -25,18 +25,17 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% xyzn=mesh(6,2);
+% xyzn=mesh3d(6,2,1);
 % xyzdwp = zeros(length(xyzn),6);
 % for i=1:length(xyzn)
 % xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 04/19/2022
+% Last modified by tschuh-at-princeton.edu, 04/25/2022
 
 % to do:
 % need to edit GPS perturbations s.t. std = 2 = sqrt(std(x).^2 + std(y).^2 + std(z).^2)
-% only use cross planes 
 
 % default plotting is off
 defval('plt',0)
@@ -69,7 +68,7 @@ xyzg = xyz0 + xyzn*xmulti{1,1};
 % add vn to v0 to get perturbed sound speed
 vg = v0 + vn;
 
-% add uncertainty to ship locations (+/- 0.02 m)
+% add uncertainty to ship locations (+/- 0.02 m in x and y, +/- 0.04 m in z)
 % got rid of loop and sped this up
 xstd = 2;
 ystd = 2;
@@ -234,7 +233,7 @@ end
 
 % save some results
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
-keyboard
+
 % optional output
 varns={xyzdwp};
 varargout=varns(1:nargout);

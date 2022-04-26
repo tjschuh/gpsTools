@@ -39,7 +39,7 @@ defval('thresh',0.05)
 % in other words, reshape size = length(data)^(1/3)
 errsz=nthroot(length(data),3);
 
-figure(1)
+figure(gcf)
 clf
 
 % make lookup table
@@ -56,10 +56,12 @@ for i=1:3
     corny = reshape(dd(:,index(i,3)),errsz.*[1 1]);
     % error ellipse are rows where p-value > thresh
     errellip = reshape([dd(:,5) > thresh].*dd(:,6),errsz.*[1 1]);
+    % error contour(s) to overlay on errellip
+    errcont = reshape((dd(:,5)),errsz.*[1 1]);
     % need to set 0s to NaNs and then cosmo will turn them white
     errellip(errellip==0) = NaN;
+    errcont(errcont==0) = NaN;
     % actually make colormap of error ellipse
-    % caxis([ ]) sets limits on colorbar
     isc = imagesc([cornx(1,1) cornx(1,end)],[corny(1,1) corny(end,1)],errellip);
     xlabel(sprintf('%s [mm]',labels{i,1}))
     ylabel(sprintf('%s [mm]',labels{i,2}))
@@ -67,11 +69,16 @@ for i=1:3
     xticks(min(data(index(i,2),:)):tint:max(data(index(i,2),:)));
     yticks(min(data(index(i,3),:)):tint:max(data(index(i,3),:)));
     axis tight equal
-    hold off
+    hold on
     cosmo(ah(i),isc,errellip)
 
-    % was trying something with contourf
-    %contourf(cornx,corny,errellip)
+    % add contour line(s)
+    % work in-progress
+    %contourf(cornx,corny,errcont,thresh)
+    contour(cornx,corny,errcont,[thresh thresh]);
+    % caxis([ ]) sets limits on colorbar    
+    caxis([min(dd(:,6)) max(dd(:,6))])
+    hold off
 end
 
 % plot ship trajectory w/ C-DOG

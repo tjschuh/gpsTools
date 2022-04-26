@@ -24,10 +24,10 @@ function dwplot(d,data,thresh)
 % end
 %    
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
-% Last modified by tschuh-at-princeton.edu, 04/19/2022
+% Last modified by tschuh-at-princeton.edu, 04/26/2022
 
 % to do:
-% need to make [2 cm 2 cm 4 cm] an input somehow
+% need to make Perturbations an input somehow
 
 % eventually make these inputs
 v0 = 1500; dv = 0;
@@ -63,6 +63,9 @@ for i=1:3
     isc = imagesc([cornx(1,1) cornx(1,end)],[corny(1,1) corny(end,1)],errellip);
     xlabel(sprintf('%s [mm]',labels{i,1}))
     ylabel(sprintf('%s [mm]',labels{i,2}))
+    tint=1;
+    xticks(min(data(index(i,2),:)):tint:max(data(index(i,2),:)));
+    yticks(min(data(index(i,3),:)):tint:max(data(index(i,3),:)));
     axis tight equal
     hold off
     cosmo(ah(i),isc,errellip)
@@ -119,8 +122,8 @@ else
     hold off
 end
 
-% need to make [2 cm 2 cm 4 cm] an input somehow
-tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[2 cm 2 cm 4 cm], p-value > %g',v0,dv,thresh));
+% need to make Perturbations an input somehow
+tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[0.8165 cm 0.8165 cm 1.633 cm], p-value > %g',v0,dv,thresh));
 tt.FontSize = 11;
 movev(tt,0.2)
 

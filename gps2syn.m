@@ -25,17 +25,19 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % EXAMPLE:
 %
 % load Unit1234-camp.mat
-% xyzn=mesh3d(6,2,1);
+% xyzn=mesh3d(4,0.5,0);
 % xyzdwp = zeros(length(xyzn),6);
 % for i=1:length(xyzn)
-% xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
+% for j=1:5
+% dummy(j,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
+% end
+% xyzdwp(i,:)=mean(dummy,1);
+% clear dummy
+% i
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 04/25/2022
-
-% to do:
-% need to edit GPS perturbations s.t. std = 2 = sqrt(std(x).^2 + std(y).^2 + std(z).^2)
+% Last modified by tschuh-at-princeton.edu, 04/26/2022
 
 % default plotting is off
 defval('plt',0)
@@ -68,11 +70,13 @@ xyzg = xyz0 + xyzn*xmulti{1,1};
 % add vn to v0 to get perturbed sound speed
 vg = v0 + vn;
 
-% add uncertainty to ship locations (+/- 0.02 m in x and y, +/- 0.04 m in z)
+% add uncertainty to ship locations
 % got rid of loop and sped this up
-xstd = 2;
-ystd = 2;
-zstd = 4;
+% |std| = sqrt(xstd^2 + ystd^2 + zstd^2)
+% assuming xstd = ystd, zstd = 2*xstd, |std| = 2 (from previous research)
+xstd = 0.8165;
+ystd = 0.8165;
+zstd = 1.6330;
 permulti{1,1} = 1e-2; permulti{1,2} = 'cm'; 
 d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
 d.x = d.x0 + xstd.*randn(length(d.x0),1).*permulti{1,1};
@@ -280,7 +284,7 @@ ylim(yel)
 grid on
 xlabel(sprintf('residuals [%s]',multi))
 t=text(ax.XLim(1)+0.05*abs(ax.XLim(2)-ax.XLim(1)),0.75*ax.YLim(2),...
-       sprintf('N = %3.0f\nstd = %3.0f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
+       sprintf('N = %3.0f\nstd = %3.2f\nmed = %3.0f\navg = %3.0f\ngof = %3.0f',...
                     length(data),stdd,median(data),mean(data),gof));
 hold on
 pd = fitdist(data,'Normal');

@@ -28,6 +28,8 @@ function dwplot(d,data,thresh)
 
 % to do:
 % need to make Perturbations an input somehow
+% make different cases within for loop to plot
+% results in different ways
 
 % eventually make these inputs
 v0 = 1500; dv = 0;
@@ -56,11 +58,8 @@ for i=1:3
     corny = reshape(dd(:,index(i,3)),errsz.*[1 1]);
     % error ellipse are rows where p-value > thresh
     errellip = reshape([dd(:,5) > thresh].*dd(:,6),errsz.*[1 1]);
-    % error contour(s) to overlay on errellip
-    errcont = reshape((dd(:,5)),errsz.*[1 1]);
     % need to set 0s to NaNs and then cosmo will turn them white
     errellip(errellip==0) = NaN;
-    errcont(errcont==0) = NaN;
     % actually make colormap of error ellipse
     isc = imagesc([cornx(1,1) cornx(1,end)],[corny(1,1) corny(end,1)],errellip);
     xlabel(sprintf('%s [mm]',labels{i,1}))
@@ -71,13 +70,13 @@ for i=1:3
     axis tight equal
     hold on
     cosmo(ah(i),isc,errellip)
-
     % add contour line(s)
-    % work in-progress
-    %contourf(cornx,corny,errcont,thresh)
-    contour(cornx,corny,errcont,[thresh thresh]);
-    % caxis([ ]) sets limits on colorbar    
-    caxis([min(dd(:,6)) max(dd(:,6))])
+    % error contour(s) to overlay on errellip
+    errcont = reshape((dd(:,5)),errsz.*[1 1]);
+    % actually overlay contour line(s)
+    contour(cornx,corny,errcont,[0.05 0.05],'k','LineWidth',2);
+    % caxis([ ]) sets limits on colorbar
+    caxis([min(errellip,[],'all') max(errellip,[],'all')])
     hold off
 end
 

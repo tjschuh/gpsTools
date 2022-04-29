@@ -1,7 +1,7 @@
 function prd2msd(prdfile,xyzpos,freq)
 % PRD2MSD(prdfile,xyzpos,freq)
 %
-% convert a .prd file to .mat and then to .mseed with the correct name
+% convert a .prd file to .mat and then to mseed with the correct name
 %
 % INPUT:
 %
@@ -46,6 +46,6 @@ if RLE < 256 || RLN < 256 || RLU < 256
     error('record length < 256 bytes')
 end
 % finally create mseed file for each component of data
-mkmseed('GN.0842.00.LXE',LXE,freq,EF,RLE)
-mkmseed('GN.0842.00.LXN',LXN,freq,EF,RLN)
-mkmseed('GN.0842.00.LXU',LXU,freq,EF,RLU)
+mkmseed('GN.0842.00.LXE',LXE,d.t,freq,EF,RLE)
+mkmseed('GN.0842.00.LXN',LXN,d.t,freq,EF,RLN)
+mkmseed('GN.0842.00.LXU',LXU,d.t,freq,EF,RLU)

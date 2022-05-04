@@ -30,12 +30,15 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % xyzn=mesh3d(4,0.5,0);
 % xyzdwp = zeros(length(xyzn),6);
 % for i=1:length(xyzn)
-% xyzdwp(i,;)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
+% xyzdwp(i,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
 % i
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
 % Last modified by tschuh-at-princeton.edu, 05/04/2022
+
+% To-do:
+% fiz dwplot so it can be called here and work with 1 point at a time
 
 % default plotting is off
 defval('plt',0)
@@ -120,7 +123,7 @@ if plt == 1
     xticklabels([])
     cosmot(d.t)
     ylabel('slant range time [s]')
-    title('hst and st')
+    title(sprintf('hst and st, ocean depth = %g m',oceandep))
     legend({'hst','st'})
 
     % plot absolute time differences
@@ -195,6 +198,10 @@ end
 
 % save some results
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
+
+% maybe possible to call dwplot here
+%figure(2)
+%dwplot(d,xyzdwp,pthresh);
 
 % optional output
 varns={xyzdwp,perturbs};

@@ -1,11 +1,12 @@
 function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
-% xyzpdw = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
+% [xyzdwp,perturbs] = GPS2SYN(d,tmax,xyz,xyzn,v,vn)
 %
-% This kinda works, plots st and hst, diff(st-hst) and bestfit line,
-% (eventually DOP), ship trajectory with C-DOG location, and histogram of
-% residuals for a given distance (x,y,z) from true location. Records if
-% residuals for those perturbations are "normal" with either solid or empty
-% circles on running x,y,z 2D plots.
+% Synthetic experiment that generates 2 plots:
+% Plot 1: 2x2 subplot with [1] slant times (st) for true C-DOG
+% location and perturbed slant times (hst) for "guess" C-DOG location,
+% [2] difference between st and hst, [3] histogram of relative time 
+% differences, and [4] histogram of absolute time differences
+% Plot 2:
 %
 % INPUT:
 %
@@ -21,6 +22,7 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 %
 % xyzdwp       array containing xyzn, Durbin-Watson test result and p-value, 
 %              and standard deviation of absolute time differences
+% perturbs     GPS perturbations added to ship locations [cm]
 % 
 % EXAMPLE:
 %
@@ -28,22 +30,19 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % xyzn=mesh3d(4,0.5,0);
 % xyzdwp = zeros(length(xyzn),6);
 % for i=1:length(xyzn)
-% for j=1:5
-% dummy(j,:)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
-% end
-% xyzdwp(i,:)=mean(dummy,1);
-% clear dummy
+% xyzdwp(i,;)=gps2syn(d,tmax,[],xyzn(i,:),[],[],[]);
 % i
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 04/26/2022
+% Last modified by tschuh-at-princeton.edu, 05/04/2022
 
 % default plotting is off
 defval('plt',0)
     
 % C-DOG location [x,y,z] [m]
-[x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,5225);
+oceandep = 5225;
+[x,y,z] = gps2dep([1.977967 -5.073198 3.3101016]*1e6,oceandep);
 defval('xyz',[x y z])
 
 % constant sound speed profile for now [m/s]
@@ -71,12 +70,10 @@ xyzg = xyz0 + xyzn*xmulti{1,1};
 vg = v0 + vn;
 
 % add uncertainty to ship locations
-% got rid of loop and sped this up
 % |std| = sqrt(xstd^2 + ystd^2 + zstd^2)
 % assuming xstd = ystd, zstd = 2*xstd, |std| = 2 (from previous research)
-xstd = 0.8165;
-ystd = 0.8165;
-zstd = 1.6330;
+xstd = 0.8165; ystd = 0.8165; zstd = 1.6330;
+perturbs = [xstd ystd zstd];
 permulti{1,1} = 1e-2; permulti{1,2} = 'cm'; 
 d.x0 = d.x; d.y0 = d.y; d.z0 = d.z;
 d.x = d.x0 + xstd.*randn(length(d.x0),1).*permulti{1,1};
@@ -194,52 +191,13 @@ if plt == 1
     movev(tt,0.325);
 
     figdisp(sprintf('experiment_%g_%g_%g',xyzn(1),xyzn(2),xyzn(3)),[],[],2,[],'epstopdf')
-
-    % %trajectory of ship w/ C-DOG
-    %     skp=1000;
-    %     zex=d.utme(1:skp:end);
-    %     zwi=d.utmn(1:skp:end);
-    %     refx=min(d.utme);
-    %     refy=min(d.utmn);
-    %     sclx=1000;
-    %     scly=1000;
-    %     plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
-    %     hold on
-    %     scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
-    %             'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
-    %     wgs84 = wgs84Ellipsoid('meter');
-    %     [lat,lon,~] = ecef2geodetic(wgs84,xyz0(1),xyz0(2),xyz0(3));
-    %     [dogx,dogy,~] = deg2utm(lat,mod(lon,360));
-    %     box on
-    %     grid on
-    %     longticks([],2)
-    %     xl(2)=xlabel('easting [km]');
-    %     yl(2)=ylabel('northing [km]');
-    %     openup(ahh(4),5,10);
-    %     openup(ahh(4),6,10);
-    %     scatter((dogx-refx)/sclx,(dogy-refy)/scly,10,...
-    %             'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
-    %     [lat,lon,~] = ecef2geodetic(wgs84,xyzg(1),xyzg(2),xyzg(3));
-    %     [fakex,fakey,~] = deg2utm(lat,mod(lon,360));
-    %     %scatter((fakex-refx)/sclx,(fakey-refy)/scly,10,...
-    %     %        'Marker','o','MarkerFaceColor','b','MarkerEdgeColor','r')
-    %     hold off
-    %     g.Visible = 'off';
-
-    % ttt=supertit(ahh([1 2]),sprintf('Results of Experiment'));
-    % movev(ttt,0.3)
-
-
-    %g.Visible = 'on';
-    %figdisp(sprintf('trials'),[],[],2,[],'epstopdf')
-    %close
 end
 
 % save some results
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
 
 % optional output
-varns={xyzdwp};
+varns={xyzdwp,perturbs};
 varargout=varns(1:nargout);
 
 function cosmot(t)
@@ -270,15 +228,6 @@ b=bar(barc,yvals,'BarWidth',1);
 longticks([],2)
 stdd=std(data);
 nstd=3;
-%xel=round(mean(data)+[-nstd nstd]*stdd,2);
-%xlim(xel)
-%ax.XTick=round([-nstd:nstd]*stdd,2);
-% Trick to do it properly
-%bla=round([-nstd:nstd]*stdd,0);
-%for in=1:length(bla)
-%    blace{in}=sprintf('%.0f',bla(in));
-%end
-%ax.XTickLabel=blace;
 yel=[0 max(b.YData)+0.1*max(b.YData)];
 ylim(yel)
 grid on

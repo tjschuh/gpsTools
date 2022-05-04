@@ -24,10 +24,12 @@ function dwplot(d,data,thresh)
 % end
 %    
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
-% Last modified by tschuh-at-princeton.edu, 04/26/2022
+% Last modified by tschuh-at-princeton.edu, 05/04/2022
 
 % to do:
 % need to make Perturbations an input somehow
+% add ocean height to title --> make ocean height input somehow
+% make this more general so can be called by gps2syn
 % make different cases within for loop to plot
 % results in different ways
 
@@ -74,7 +76,7 @@ for i=1:3
     % error contour(s) to overlay on errellip
     errcont = reshape((dd(:,5)),errsz.*[1 1]);
     % actually overlay contour line(s)
-    contour(cornx,corny,errcont,[0.05 0.05],'k','LineWidth',2);
+    contour(cornx,corny,errcont,[thresh thresh],'k','LineWidth',1.25);
     % caxis([ ]) sets limits on colorbar
     caxis([min(errellip,[],'all') max(errellip,[],'all')])
     hold off

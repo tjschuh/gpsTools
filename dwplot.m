@@ -131,7 +131,7 @@ else
 end
 
 % need to make Perturbations an input somehow
-tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s\nGPS Perturbations = +/-[0.8165 cm 0.8165 cm 1.633 cm], p-value > %g',v0,dv,thresh));
+tt=supertit(ah([1 2]),sprintf('True Sound Speed = %g m/s, Sound Speed Error = %g m/s, Ocean Height = 5225 m\nGPS Perturbations = +/-[0.8165 cm 0.8165 cm 1.633 cm], p-value > %g',v0,dv,thresh));
 tt.FontSize = 11;
 movev(tt,0.2)
 

@@ -1,9 +1,8 @@
-%function gps2dis(files,protype)
+function gps2dis(files,protype)
 % GPS2DIS(files,protype)
 %
 % Given Precise Point Position time series of four different units,
-% computes
-% their pairwise distances, and plots them
+% computes their pairwise distances, and plots them
 %
 % INPUT:
 % 
@@ -12,28 +11,12 @@
 %
 % EXAMPLE:
 %
-% gps2his({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
-%
-% Last modified by fjsimons-at-princeton.edu, 02/08/2022
-
-%NOT DONE
-
-
-function gps2dis(unit1file,unit2file,unit3file,unit4file)
-% GPS2PLT(unit1file,unit2file,unit3file,unit4file)
-%
-% plot all 4 units on one figure and compare height, distance 
-% between receivers, and acceleration (and maybe one day rotation)
-%
-% INPUT:
-%
-% unit1file     mat file containing data collected by unit 1
-% unit2file     mat file containing data collected by unit 2
-% unit3file     mat file containing data collected by unit 3
-% unit4file     mat file containing data collected by unit 4
+% gps2dis({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 11/12/2021
-% Last modified by tschuh-at-princeton.edu, 02/03/2022
+% Last modified by fjsimons-at-princeton.edu, 05/17/2022
+
+%NOT DONE
 
 % need some serious edits to this:
 % fix annotations/text boxes
@@ -41,18 +24,14 @@ function gps2dis(unit1file,unit2file,unit3file,unit4file)
 % currently statistics (correlation coeff, ployfit, rms, std)
 % are computed using all data including greyed out parts
 
-files = {unit1file,unit2file,unit3file,unit4file};
-
 % use mat2mod to convert data to all be same time spans with no time gaps
 [d,tmax] = mat2mod(files);
-[~,fname,~] = fileparts(unit1file);
+[~,fname,~] = fileparts(files{1});
 
 d1 = d(1);
 d2 = d(2);
 d3 = d(3);
 d4 = d(4);
-
-
 
 % plotting all 4 units together in motion
 % not neccessary right now
@@ -73,14 +52,16 @@ d4 = d(4);
 %end
 %movie(M);
 
-% find rows where nsats <= 4
-nthresh = 4;
-% find rows where pdop >= 15 or = 0
-pthresh = 15;
+% keep rows where nsats > nthresh and pdop < pthresh
+nthresh = 4; pthresh = 15;
+
+% symbol size
+sz=10;
+
 % plotting intervals
-int1 = 30;
-int2 = 5;
-int3 = 15;
+pint1 = 30;
+pint2 = 5;
+pint3 = 15;
 
 % find good (g) and bad (b) data
 % [g b] = h
@@ -101,15 +82,15 @@ b4(p4<pthresh & n4>nthresh) = NaN;
 f=figure;
 f.Position = [500 250 800 900];
 ah(1)=subplot(5,2,[1 3]);
-plot(d1.t(1:int1:end),g1(1:int1:end),'r')
+plot(d1.t(1:pint1:end),g1(1:pint1:end),'r')
 hold on
-plot(d2.t(1:int1:end),g2(1:int1:end),'g')
-plot(d3.t(1:int1:end),g3(1:int1:end),'b')
-plot(d4.t(1:int1:end),g4(1:int1:end),'k')
+plot(d2.t(1:pint1:end),g2(1:pint1:end),'g')
+plot(d3.t(1:pint1:end),g3(1:pint1:end),'b')
+plot(d4.t(1:pint1:end),g4(1:pint1:end),'k')
 xlim([d1.t(1) d1.t(end)])
 xticklabels([])
 ylabel('Height relative to WGS84 [m]')
-sht=title(sprintf('Ship Height (Every %dth Point)',int1));
+sht=title(sprintf('Ship Height (Every %dth Point)',pint1));
 grid on
 longticks
 % to set best ylim, remove outliers from alldht
@@ -127,10 +108,10 @@ a.FontSize = 8;
 b=annotation('textbox',[0.135 0.655 0 0],'String',[sprintf('Nsats > %d & PDOP < %d',nthresh,pthresh)],'FitBoxToText','on');
 b.FontSize = 8;
 % grey out bad data
-plot(d1.t(1:int1:end),b1(1:int1:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:int1:end),b2(1:int1:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:int1:end),b3(1:int1:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:int1:end),b4(1:int1:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint1:end),b1(1:pint1:end),'color',[0.7 0.7 0.7])
+plot(d2.t(1:pint1:end),b2(1:pint1:end),'color',[0.7 0.7 0.7])
+plot(d3.t(1:pint1:end),b3(1:pint1:end),'color',[0.7 0.7 0.7])
+plot(d4.t(1:pint1:end),b4(1:pint1:end),'color',[0.7 0.7 0.7])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -187,28 +168,28 @@ good34(p3>=pthresh | p3==0 | n3<=nthresh | p4>=pthresh | p4==0 | n4<=nthresh) = 
 bad34(p3<pthresh & n3>nthresh & p4<pthresh & n4>nthresh) = NaN;
 
 ah(2)=subplot(5,2,[2 4]);
-plot(d1.t(1:int2:end),good12(1:int2:end))
+plot(d1.t(1:pint2:end),good12(1:pint2:end))
 hold on
-plot(d1.t(1:int2:end),good13(1:int2:end))
-plot(d1.t(1:int2:end),good14(1:int2:end))
-plot(d1.t(1:int2:end),good23(1:int2:end))
-plot(d1.t(1:int2:end),good24(1:int2:end))
-plot(d1.t(1:int2:end),good34(1:int2:end))
+plot(d1.t(1:pint2:end),good13(1:pint2:end))
+plot(d1.t(1:pint2:end),good14(1:pint2:end))
+plot(d1.t(1:pint2:end),good23(1:pint2:end))
+plot(d1.t(1:pint2:end),good24(1:pint2:end))
+plot(d1.t(1:pint2:end),good34(1:pint2:end))
 xlim([d1.t(1) d1.t(end)])
 xticklabels([])
 ylim([0.25 6.75])
 yticklabels({'1-2','1-3','1-4','2-3','2-4','3-4'})
 ylabel('GPS Pair')
-gpst=title(sprintf('Distances between GPS Receivers\n(Every %dth Point)',int2));
+gpst=title(sprintf('Distances between GPS Receivers\n(Every %dth Point)',pint2));
 grid on
 longticks
 % grey out bad data
-plot(d1.t(1:int2:end),bad12(1:int2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:int2:end),bad13(1:int2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:int2:end),bad14(1:int2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:int2:end),bad23(1:int2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:int2:end),bad24(1:int2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:int2:end),bad34(1:int2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad12(1:pint2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad13(1:pint2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad14(1:pint2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad23(1:pint2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad24(1:pint2:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint2:end),bad34(1:pint2:end),'color',[0.7 0.7 0.7])
 text(d1.t(10),6.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a34,b34,rms34,std34,erms34),'FontSize',9)
 text(d1.t(10),5.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a24,b24,rms24,std24,erms24),'FontSize',9)
 text(d1.t(10),4.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a23,b23,rms23,std23,erms23),'FontSize',9)
@@ -307,11 +288,11 @@ azcorr = corr([az1 az2 az3 az4],'rows','complete');
 
 % plot ax
 ah(3)=subplot(5,2,[5 6]);
-plot(d1.t(1:int3:end-2),gax1(1:int3:end),'r')
+plot(d1.t(1:pint3:end-2),gax1(1:pint3:end),'r')
 hold on
-plot(d2.t(1:int3:end-2),gax2(1:int3:end),'g')
-plot(d3.t(1:int3:end-2),gax3(1:int3:end),'b')
-plot(d4.t(1:int3:end-2),gax4(1:int3:end),'k')
+plot(d2.t(1:pint3:end-2),gax2(1:pint3:end),'g')
+plot(d3.t(1:pint3:end-2),gax3(1:pint3:end),'b')
+plot(d4.t(1:pint3:end-2),gax4(1:pint3:end),'k')
 grid on
 longticks([],3)
 xlim([d1.t(1) d1.t(end-2)])
@@ -331,21 +312,21 @@ c=annotation('textbox',[0.335 0.9225 0 0],'String',[sprintf('v = %.2f knots',vav
 c.FontSize = 8;
 text(d1.t(10),4*max(axout,[],'all')/5,sprintf('mean = %f cm/s^2',axavg),'FontSize',8)
 ylabel('a_x [cm/s^2]')
-sat=title(sprintf('Ship Acceleration Components (Every %dth Point)',int3));
+sat=title(sprintf('Ship Acceleration Components (Every %dth Point)',pint3));
 xticklabels([])
 % grey out bad data
-plot(d1.t(1:int3:end-2),bax1(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:int3:end-2),bax2(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:int3:end-2),bax3(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:int3:end-2),bax4(1:int3:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint3:end-2),bax1(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d2.t(1:pint3:end-2),bax2(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d3.t(1:pint3:end-2),bax3(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d4.t(1:pint3:end-2),bax4(1:pint3:end),'color',[0.7 0.7 0.7])
 
 % plot ay
 ah(4)=subplot(5,2,[7 8]);
-plot(d1.t(1:int3:end-2),gay1(1:int3:end),'r')
+plot(d1.t(1:pint3:end-2),gay1(1:pint3:end),'r')
 hold on
-plot(d2.t(1:int3:end-2),gay2(1:int3:end),'g')
-plot(d3.t(1:int3:end-2),gay3(1:int3:end),'b')
-plot(d4.t(1:int3:end-2),gay4(1:int3:end),'k')
+plot(d2.t(1:pint3:end-2),gay2(1:pint3:end),'g')
+plot(d3.t(1:pint3:end-2),gay3(1:pint3:end),'b')
+plot(d4.t(1:pint3:end-2),gay4(1:pint3:end),'k')
 grid on
 longticks([],3)
 xlim([d1.t(1) d1.t(end-2)])
@@ -367,18 +348,18 @@ text(d1.t(10),4*max(ayout,[],'all')/5,sprintf('mean = %f cm/s^2',ayavg),'FontSiz
 ylabel('a_y [cm/s^2]')
 xticklabels([])
 % grey out bad data
-plot(d1.t(1:int3:end-2),bay1(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:int3:end-2),bay2(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:int3:end-2),bay3(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:int3:end-2),bay4(1:int3:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint3:end-2),bay1(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d2.t(1:pint3:end-2),bay2(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d3.t(1:pint3:end-2),bay3(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d4.t(1:pint3:end-2),bay4(1:pint3:end),'color',[0.7 0.7 0.7])
 
 % plot az
 ah(5)=subplot(5,2,[9 10]);
-plot(d1.t(1:int3:end-2),gaz1(1:int3:end),'r')
+plot(d1.t(1:pint3:end-2),gaz1(1:pint3:end),'r')
 hold on
-plot(d2.t(1:int3:end-2),gaz2(1:int3:end),'g')
-plot(d3.t(1:int3:end-2),gaz3(1:int3:end),'b')
-plot(d4.t(1:int3:end-2),gaz4(1:int3:end),'k')
+plot(d2.t(1:pint3:end-2),gaz2(1:pint3:end),'g')
+plot(d3.t(1:pint3:end-2),gaz3(1:pint3:end),'b')
+plot(d4.t(1:pint3:end-2),gaz4(1:pint3:end),'k')
 grid on
 longticks([],3)
 xlim([d1.t(1) d1.t(end-2)])
@@ -399,10 +380,10 @@ c.FontSize = 8;
 text(d1.t(10),4*max(azout,[],'all')/5,sprintf('mean = %f cm/s^2',azavg),'FontSize',8)
 ylabel('a_z [cm/s^2]')
 % grey out bad data
-plot(d1.t(1:int3:end-2),baz1(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:int3:end-2),baz2(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:int3:end-2),baz3(1:int3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:int3:end-2),baz4(1:int3:end),'color',[0.7 0.7 0.7])
+plot(d1.t(1:pint3:end-2),baz1(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d2.t(1:pint3:end-2),baz2(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d3.t(1:pint3:end-2),baz3(1:pint3:end),'color',[0.7 0.7 0.7])
+plot(d4.t(1:pint3:end-2),baz4(1:pint3:end),'color',[0.7 0.7 0.7])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -412,7 +393,7 @@ movev(tt,0.3)
 
 a = annotation('textbox',[0.465 0.085 0 0],'String',['camp'],'FitBoxToText','on');
 a.FontSize = 12;
-
+keyboard
 figdisp(sprintf('all4plt-%s',fname),[],'',2,[],'epstopdf')
 
 close

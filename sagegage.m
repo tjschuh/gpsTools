@@ -141,20 +141,20 @@ set(ah(2),'YaxisLocation','right')
 
 set(yl(2),'Interpreter','TeX')
 xl(1)=xlabel('time [h]');
-% if pval >= 1e-15
-%     text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-%          sprintf('dw = %.3f, p = %.3g',dw,pval));
-% else
-%     text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-%          sprintf('dw = %.3f, p = 0',dw));
-% end
-% if pval >= pthresh
-%     text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-%          sprintf('ACCEPTED'))
-% else
-%     text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-%          sprintf('REJECTED'))
-% end
+if pval >= 1e-15
+     text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+          sprintf('dw = %.3f, p = %.3g',dw,pval));
+else
+    text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('dw = %.3f, p = 0',dw));
+end
+if pval >= pthresh
+    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('ACCEPTED'))
+else
+    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+         sprintf('REJECTED'))
+end
 
 % plot absolute time differences
 ah(3)=subplot(3,3,7);

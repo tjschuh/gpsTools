@@ -35,7 +35,7 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 05/04/2022
+% Last modified by tschuh-at-princeton.edu, 05/18/2022
 
 % To-do:
 % fiz dwplot so it can be called here and work with 1 point at a time
@@ -89,7 +89,7 @@ hsr = sqrt((d.x-xyzg(1)).^2 + (d.y-xyzg(2)).^2 + (d.z-xyzg(3)).^2);
 hst = hsr./vg;
 % error between slant times and predicted slant times
 differ = st-hst;
-% calculate relative time difference
+% calculate relative time difference (unitless quantity)
 rel = differ./st;
 % calculate rms(st-hst)
 rmse = norm(differ(rows));
@@ -160,13 +160,15 @@ if plt == 1
     end
 
     % plot histogram of relative time differences
+    % remember relative time differences are unitless
     ah(3)=subplot(2,4,[3 4]);
     try
         thresh1=500;
-        [b,lain1,gof1,stdr]=cosmoh(rel(rows)*tmulti{1,1},ah(3),thresh1,tmulti{1,2});
+        [b,lain1,gof1,stdr]=cosmoh(rel(rows),ah(3),thresh1,tmulti{1,2});        
         b.FaceColor = [0.400 0.6667 0.8431];
         lain1.Color = 'blue';
         title('Relative Time Differences')
+        xlabel('residuals')
     catch
     end
 

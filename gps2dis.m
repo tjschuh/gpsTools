@@ -28,91 +28,182 @@ function gps2dis(files,protype)
 [d,tmax] = mat2mod(files);
 [~,fname,~] = fileparts(files{1});
 
-d1 = d(1);
-d2 = d(2);
-d3 = d(3);
-d4 = d(4);
-
-% plotting all 4 units together in motion
-% not neccessary right now
-%figure
-%loops = 10;
-%M(loops) = struct('cdata',[],'colormap',[]);
-%for i = 1:loops
-%    scatter3(d1.utmeasting(i,1),d1.utmnorthing(i,1),d1.height(i,1),'k','filled')
-%    hold on
-%    scatter3(d2.utmeasting(i,1),d2.utmnorthing(i,1),d2.height(i,1),'b','filled')
-%    scatter3(d3.utmeasting(i,1),d3.utmnorthing(i,1),d3.height(i,1),'g','filled')
-%    scatter3(d4.utmeasting(i,1),d4.utmnorthing(i,1),d4.height(i,1),'r','filled')
-%    xlabel('Easting [m]')
-%    ylabel('Northing [m]')
-%    zlabel('Height rel to WGS84 [m]')
-%    M(i) = getframe;
-%    clf
-%end
-%movie(M);
-
 % keep rows where nsats > nthresh and pdop < pthresh
 nthresh = 4; pthresh = 15;
-
-% symbol size
-sz=10;
 
 % plotting intervals
 pint1 = 30;
 pint2 = 5;
 pint3 = 15;
 
-% find good (g) and bad (b) data
-% [g b] = h
-h1 = d1.height; h2 = d2.height; h3 = d3.height; h4 = d4.height;
-p1 = d1.pdop; p2 = d2.pdop; p3 = d3.pdop; p4 = d4.pdop;
-n1 = d1.nsats(:,1); n2 = d2.nsats(:,1); n3 = d3.nsats(:,1); n4 = d4.nsats(:,1);
-g1 = h1; b1 = h1; g2 = h2; b2 = h2; g3 = h3; b3 = h3; g4 = h4; b4 = h4;
-g1(p1>=pthresh | p1==0 | n1<=nthresh) = NaN;
-b1(p1<pthresh & n1>nthresh) = NaN;
-g2(p2>=pthresh | p2==0 | n2<=nthresh) = NaN;
-b2(p2<pthresh & n2>nthresh) = NaN;
-g3(p3>=pthresh | p3==0 | n3<=nthresh) = NaN;
-b3(p3<pthresh & n3>nthresh) = NaN;
-g4(p4>=pthresh | p4==0 | n4<=nthresh) = NaN;
-b4(p4<pthresh & n4>nthresh) = NaN;
+figure(1)
+clf
+cols = {'r','g','b','k'};
 
-% plot heights of all 4 units all on 1 plot
-f=figure;
-f.Position = [500 250 800 900];
-ah(1)=subplot(5,2,[1 3]);
-plot(d1.t(1:pint1:end),g1(1:pint1:end),'r')
-hold on
-plot(d2.t(1:pint1:end),g2(1:pint1:end),'g')
-plot(d3.t(1:pint1:end),g3(1:pint1:end),'b')
-plot(d4.t(1:pint1:end),g4(1:pint1:end),'k')
-xlim([d1.t(1) d1.t(end)])
-xticklabels([])
-ylabel('Height relative to WGS84 [m]')
-sht=title(sprintf('Ship Height (Every %dth Point)',pint1));
-grid on
-longticks
-% to set best ylim, remove outliers from alldht
-% then find the global min
-allht = [g1 g2 g3 g4];
-try
-    allhtout = rmoutliers(allht,'gesd');
-catch
-    allhtout = rmoutliers(allht,'mean');
+for i=1:length(d)
+    % find the good data condition
+    cond1=d(i).pdop<pthresh & d(i).pdop~=0 & d(i).nsats(:,1)>nthresh;
+    % [g b] = h
+    % only good data
+    gh=d(i).height; gh(~cond1)=NaN;
+    % only bad data
+    bh=d(i).height; bh(cond1)=NaN;
+    % keep all the data for the end
+    allht(:,i) = gh;
+
+    % also compute velocity components vx, vy, vz in cm/s
+    vx = 100*diff(d(i).xyz(:,1))./seconds(diff(d(i).t));
+    vy = 100*diff(d(i).xyz(:,2))./seconds(diff(d(i).t));
+    vz = 100*diff(d(i).xyz(:,3))./seconds(diff(d(i).t));
+    allvx(:,i) = vx;
+    allvy(:,i) = vy;
+    
+    % plot heights of all 4 units all on 1 plot
+    ah(1)=subplot(5,2,[1 3]);
+    plot(d(i).t(1:pint1:end),gh(1:pint1:end),cols{i})
+    hold on
+    plot(d(i).t(1:pint1:end),bh(1:pint1:end),'color',[0.7 0.7 0.7])
+    if i == length(d)
+        % compute average spatial and time velocity in knots (1 knot = 1852 m/hr)
+        vxavg = nanmean(allvx,2);
+        vyavg = nanmean(allvy,2);
+        vxymag = sqrt(vxavg.^2 + vyavg.^2);
+        vavg = nanmean(vxymag,1);
+        vavg = vavg*3600*1e-2/1852;
+
+        % cosmetics for subplot 1
+        xlim([d(i).t(1) d(i).t(end)])
+        xticklabels([])
+        ylabel('Height relative to WGS84 [m]')
+        title(sprintf('Ship Height (Every %dth Point)',pint1))
+        grid on
+        longticks
+        % to set best ylim, remove outliers from alldht
+        % then find the global min
+        try
+            allhtout = rmoutliers(allht,'gesd');
+        catch
+            allhtout = rmoutliers(allht,'mean');
+        end
+        outpct = (length(allht)-length(allhtout))*100/length(allht);
+        ylim([min(allhtout,[],'all')-0.005*abs(min(allhtout,[],'all')) ...
+              max(allhtout,[],'all')+0.005*abs(max(allhtout,[],'all'))])
+        text(d(i).t(floor(0.05*length(d(i).t))),ah(1).YLim(1)+0.005*abs(ah(1).YLim(1)),...
+             sprintf('%05.2f%% Outliers',outpct))
+        text(d(i).t(floor(0.45*length(d(i).t))),ah(1).YLim(1)+0.005*abs(ah(1).YLim(1)),...
+             sprintf('Nsats > %d & PDOP < %d',nthresh,pthresh))
+        text(d(i).t(floor(0.6*length(d(i).t))),ah(1).YLim(2)-0.005*abs(ah(1).YLim(2)),...
+             sprintf('v = %.2f knots',vavg))
+    end
+
+    %PUT DISTANCES CODE HERE
+    
+    % compute acceleration components ax, ay, az in cm/s^2
+    ax = diff(vx)./(2*seconds(diff(d(i).t(1:end-1))));
+    ay = diff(vy)./(2*seconds(diff(d(i).t(1:end-1))));
+    az = diff(vz)./(2*seconds(diff(d(i).t(1:end-1))));
+
+    cond2=d(i).pdop(1:end-2)<pthresh & d(i).pdop(1:end-2)~=0 & d(i).nsats(1:end-2,1)>nthresh;
+    
+    % good data
+    gax=ax; gax(~cond2)=NaN;
+    gay=ay; gay(~cond2)=NaN;
+    gaz=az; gaz(~cond2)=NaN;
+    % only bad data
+    bax=ax; bax(cond2)=NaN;
+    bay=ay; bay(cond2)=NaN;
+    baz=az; baz(cond2)=NaN;
+
+    allax(:,i) = gax;
+    allay(:,i) = gay;
+    allaz(:,i) = gaz;
+    
+    % plot ax
+    ah(3)=subplot(5,2,[5 6]);
+    plot(d(i).t(1:pint3:end-2),gax(1:pint3:end),cols{i})
+    hold on
+    plot(d(i).t(1:pint3:end-2),bax(1:pint3:end),'color',[0.7 0.7 0.7])
+    if i == length(d)
+        grid on
+        longticks([],3)
+        xlim([d(i).t(1) d(i).t(end-2)])
+        axcorr = corr(allax,'rows','complete');
+        axavg = nanmean(nanmean(allax,2),1);
+        try
+            axout = rmoutliers(allax,'gesd');
+        catch
+            axout = rmoutliers(allax,'mean');
+        end
+        outpct = (length(allax)-length(axout))*100/length(allax);
+        ylim([-max(axout,[],'all')-0.005*abs(max(axout,[],'all')) max(axout,[],'all')+0.005*abs(max(axout,[],'all'))])
+        a=annotation('textbox',[0.77 0.61 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
+        a.FontSize = 8;
+        b=annotation('textbox',[0.13 0.625 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',axcorr(1,2),axcorr(1,3),axcorr(1,4),axcorr(2,3),axcorr(2,4),axcorr(3,4))],'FitBoxToText','on');
+        b.FontSize = 8;
+        text(d(i).t(10),0.8*max(axout,[],'all'),sprintf('mean = %f cm/s^2',axavg),'FontSize',8)
+        ylabel('a_x [cm/s^2]')
+        title(sprintf('Ship Acceleration Components (Every %dth Point)',pint3))
+        xticklabels([])
+    end
+
+    % plot ay
+    ah(4)=subplot(5,2,[7 8]);
+    plot(d(i).t(1:pint3:end-2),gay(1:pint3:end),cols{i})
+    hold on
+    plot(d(i).t(1:pint3:end-2),bay(1:pint3:end),'color',[0.7 0.7 0.7])
+    if i == length(d)
+        grid on
+        longticks([],3)
+        xlim([d(i).t(1) d(i).t(end-2)])
+        aycorr = corr(allay,'rows','complete');
+        ayavg = nanmean(nanmean(allay,2),1);
+        try
+            ayout = rmoutliers(allay,'gesd');
+        catch
+            ayout = rmoutliers(allay,'mean');
+        end
+        outpct = (length(allay)-length(ayout))*100/length(allay);
+        ylim([-max(ayout,[],'all')-0.005*abs(max(ayout,[],'all')) max(ayout,[],'all')+0.005*abs(max(ayout,[],'all'))])
+        a=annotation('textbox',[0.77 0.4375 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
+        a.FontSize = 8;
+        b=annotation('textbox',[0.13 0.45 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',aycorr(1,2),aycorr(1,3),aycorr(1,4),aycorr(2,3),aycorr(2,4),aycorr(3,4))],'FitBoxToText','on');
+        b.FontSize = 8;
+        c=annotation('textbox',[0.4 0.45 0 0],'String',[sprintf('GPS 1 - red, GPS 2 - green,\nGPS 3 - blue, GPS 4 - black')],'FitBoxToText','on');
+        c.FontSize = 8;
+        text(d(i).t(10),0.8*max(ayout,[],'all'),sprintf('mean = %f cm/s^2',ayavg),'FontSize',8)
+        ylabel('a_y [cm/s^2]')
+        xticklabels([])        
+    end
+
+    % plot az
+    ah(5)=subplot(5,2,[9 10]);
+    plot(d(i).t(1:pint3:end-2),gaz(1:pint3:end),cols{i})
+    hold on
+    plot(d(i).t(1:pint3:end-2),baz(1:pint3:end),'color',[0.7 0.7 0.7])
+    if i == length(d)
+        grid on
+        longticks([],3)
+        xlim([d(i).t(1) d(i).t(end-2)])
+        azcorr = corr(allaz,'rows','complete');
+        azavg = nanmean(nanmean(allaz,2),1);
+        try
+            azout = rmoutliers(allaz,'gesd');
+        catch
+            azout = rmoutliers(allaz,'mean');
+        end
+        outpct = (length(allaz)-length(azout))*100/length(allaz);
+        ylim([-max(azout,[],'all')-0.005*abs(max(azout,[],'all')) max(azout,[],'all')+0.005*abs(max(azout,[],'all'))])
+        a=annotation('textbox',[0.77 0.265 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
+        a.FontSize = 8;
+        b=annotation('textbox',[0.13 0.2775 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',azcorr(1,2),azcorr(1,3),azcorr(1,4),azcorr(2,3),azcorr(2,4),azcorr(3,4))],'FitBoxToText','on');
+        b.FontSize = 8;
+        c=annotation('textbox',[0.44 0.2775 0 0],'String',[sprintf('X12, X13, X14,\nX23, X24, X34')],'FitBoxToText','on');
+        c.FontSize = 8;
+        text(d(i).t(10),0.8*max(azout,[],'all'),sprintf('mean = %f cm/s^2',azavg),'FontSize',8)
+        ylabel('a_z [cm/s^2]')
+    end        
 end
-outpct = (length(allht)-length(allhtout))*100/length(allht);
-ylim([min(allhtout,[],'all')-0.005*abs(min(allhtout,[],'all')) max(allhtout,[],'all')+0.005*abs(max(allhtout,[],'all'))])
-a=annotation('textbox',[0.325 0.655 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
-a.FontSize = 8;
-b=annotation('textbox',[0.135 0.655 0 0],'String',[sprintf('Nsats > %d & PDOP < %d',nthresh,pthresh)],'FitBoxToText','on');
-b.FontSize = 8;
-% grey out bad data
-plot(d1.t(1:pint1:end),b1(1:pint1:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:pint1:end),b2(1:pint1:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:pint1:end),b3(1:pint1:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:pint1:end),b4(1:pint1:end),'color',[0.7 0.7 0.7])
-
+keyboard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % plot distances between all 4 GPS units
@@ -197,193 +288,6 @@ text(d1.t(10),3.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a14,b14,rms14,std14,e
 text(d1.t(10),2.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a13,b13,rms13,std13,erms13),'FontSize',9)
 text(d1.t(10),1.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a12,b12,rms12,std12,erms12),'FontSize',9)
 text(d1.t(10),0.5,sprintf('a [mm/s], b [m], rms(x) [m], std [mm], rms(e) [mm]'),'FontSize',7.5)
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% plot accelerations ax, ay, az
-% first compute velocity components vx, vy, vz in cm/s
-vx1 = 100*diff(d1.xyz(:,1))./seconds(diff(d1.t));
-vy1 = 100*diff(d1.xyz(:,2))./seconds(diff(d1.t));
-vz1 = 100*diff(d1.xyz(:,3))./seconds(diff(d1.t));
-vx2 = 100*diff(d2.xyz(:,1))./seconds(diff(d2.t));
-vy2 = 100*diff(d2.xyz(:,2))./seconds(diff(d2.t));
-vz2 = 100*diff(d2.xyz(:,3))./seconds(diff(d2.t));
-vx3 = 100*diff(d3.xyz(:,1))./seconds(diff(d3.t));
-vy3 = 100*diff(d3.xyz(:,2))./seconds(diff(d3.t));
-vz3 = 100*diff(d3.xyz(:,3))./seconds(diff(d3.t));
-vx4 = 100*diff(d4.xyz(:,1))./seconds(diff(d4.t));
-vy4 = 100*diff(d4.xyz(:,2))./seconds(diff(d4.t));
-vz4 = 100*diff(d4.xyz(:,3))./seconds(diff(d4.t));
-
-% compute average spatial and time velocity in knots (1 knot = 1852 m/hr)
-vx = [vx1 vx2 vx3 vx4];
-vy = [vy1 vy2 vy3 vy4];
-vxavg = nanmean(vx,2);
-vyavg = nanmean(vy,2);
-vxymag = sqrt(vxavg.^2 + vyavg.^2);
-vavg = nanmean(vxymag,1);
-vavg = vavg*3600*1e-2/1852;
-
-% then compute acceleration components ax, ay, az in cm/s^2
-ax1 = diff(vx1)./(2*seconds(diff(d1.t(1:end-1))));
-ay1 = diff(vy1)./(2*seconds(diff(d1.t(1:end-1))));
-az1 = diff(vz1)./(2*seconds(diff(d1.t(1:end-1))));
-ax2 = diff(vx2)./(2*seconds(diff(d2.t(1:end-1))));
-ay2 = diff(vy2)./(2*seconds(diff(d2.t(1:end-1))));
-az2 = diff(vz2)./(2*seconds(diff(d2.t(1:end-1))));
-ax3 = diff(vx3)./(2*seconds(diff(d3.t(1:end-1))));
-ay3 = diff(vy3)./(2*seconds(diff(d3.t(1:end-1))));
-az3 = diff(vz3)./(2*seconds(diff(d3.t(1:end-1))));
-ax4 = diff(vx4)./(2*seconds(diff(d4.t(1:end-1))));
-ay4 = diff(vy4)./(2*seconds(diff(d4.t(1:end-1))));
-az4 = diff(vz4)./(2*seconds(diff(d4.t(1:end-1))));
-
-% compute average ax,ay,az in cm/s^2
-ax = [ax1 ax2 ax3 ax4];
-ay = [ay1 ay2 ay3 ay4];
-az = [az1 az2 az3 az4];
-axavg = nanmean(nanmean(ax,2),1);
-ayavg = nanmean(nanmean(ay,2),1);
-azavg = nanmean(nanmean(az,2),1);
-
-% find good (g) and bad (b) data
-% [g b] = h
-gax1 = ax1; bax1 = ax1; gax2 = ax2; bax2 = ax2; gax3 = ax3; bax3 = ax3; gax4 = ax4; bax4 = ax4;
-gax1(p1(1:end-2)>=pthresh | p1(1:end-2)==0 | n1(1:end-2)<=nthresh) = NaN;
-bax1(p1(1:end-2)<pthresh & n1(1:end-2)>nthresh) = NaN;
-gax2(p2(1:end-2)>=pthresh | p2(1:end-2)==0 | n2(1:end-2)<=nthresh) = NaN;
-bax2(p2(1:end-2)<pthresh & n2(1:end-2)>nthresh) = NaN;
-gax3(p3(1:end-2)>=pthresh | p3(1:end-2)==0 | n3(1:end-2)<=nthresh) = NaN;
-bax3(p3(1:end-2)<pthresh & n3(1:end-2)>nthresh) = NaN;
-gax4(p4(1:end-2)>=pthresh | p4(1:end-2)==0 | n4(1:end-2)<=nthresh) = NaN;
-bax4(p4(1:end-2)<pthresh & n4(1:end-2)>nthresh) = NaN;
-gay1 = ay1; bay1 = ay1; gay2 = ay2; bay2 = ay2; gay3 = ay3; bay3 = ay3; gay4 = ay4; bay4 = ay4;
-gay1(p1(1:end-2)>=pthresh | p1(1:end-2)==0 | n1(1:end-2)<=nthresh) = NaN;
-bay1(p1(1:end-2)<pthresh & n1(1:end-2)>nthresh) = NaN;
-gay2(p2(1:end-2)>=pthresh | p2(1:end-2)==0 | n2(1:end-2)<=nthresh) = NaN;
-bay2(p2(1:end-2)<pthresh & n2(1:end-2)>nthresh) = NaN;
-gay3(p3(1:end-2)>=pthresh | p3(1:end-2)==0 | n3(1:end-2)<=nthresh) = NaN;
-bay3(p3(1:end-2)<pthresh & n3(1:end-2)>nthresh) = NaN;
-gay4(p4(1:end-2)>=pthresh | p4(1:end-2)==0 | n4(1:end-2)<=nthresh) = NaN;
-bay4(p4(1:end-2)<pthresh & n4(1:end-2)>nthresh) = NaN;
-gaz1 = az1; baz1 = az1; gaz2 = az2; baz2 = az2; gaz3 = az3; baz3 = az3; gaz4 = az4; baz4 = az4;
-gaz1(p1(1:end-2)>=pthresh | p1(1:end-2)==0 | n1(1:end-2)<=nthresh) = NaN;
-baz1(p1(1:end-2)<pthresh & n1(1:end-2)>nthresh) = NaN;
-gaz2(p2(1:end-2)>=pthresh | p2(1:end-2)==0 | n2(1:end-2)<=nthresh) = NaN;
-baz2(p2(1:end-2)<pthresh & n2(1:end-2)>nthresh) = NaN;
-gaz3(p3(1:end-2)>=pthresh | p3(1:end-2)==0 | n3(1:end-2)<=nthresh) = NaN;
-baz3(p3(1:end-2)<pthresh & n3(1:end-2)>nthresh) = NaN;
-gaz4(p4(1:end-2)>=pthresh | p4(1:end-2)==0 | n4(1:end-2)<=nthresh) = NaN;
-baz4(p4(1:end-2)<pthresh & n4(1:end-2)>nthresh) = NaN;
-
-a1 = sqrt(ax1.^2 + ay1.^2 + az1.^2); 
-a2 = sqrt(ax2.^2 + ay2.^2 + az2.^2); 
-a3 = sqrt(ax3.^2 + ay3.^2 + az3.^2); 
-a4 = sqrt(ax4.^2 + ay4.^2 + az4.^2); 
-
-% compute correlation coefficients
-axcorr = corr([ax1 ax2 ax3 ax4],'rows','complete');
-aycorr = corr([ay1 ay2 ay3 ay4],'rows','complete');
-azcorr = corr([az1 az2 az3 az4],'rows','complete');
-
-% plot ax
-ah(3)=subplot(5,2,[5 6]);
-plot(d1.t(1:pint3:end-2),gax1(1:pint3:end),'r')
-hold on
-plot(d2.t(1:pint3:end-2),gax2(1:pint3:end),'g')
-plot(d3.t(1:pint3:end-2),gax3(1:pint3:end),'b')
-plot(d4.t(1:pint3:end-2),gax4(1:pint3:end),'k')
-grid on
-longticks([],3)
-xlim([d1.t(1) d1.t(end-2)])
-ax = abs([gax1 gax2 gax3 gax4]);
-try
-    axout = rmoutliers(ax,'gesd');
-catch
-    axout = rmoutliers(ax,'mean');
-end
-outpct = (length(ax)-length(axout))*100/length(ax);
-ylim([-max(axout,[],'all')-0.005*abs(max(axout,[],'all')) max(axout,[],'all')+0.005*abs(max(axout,[],'all'))])
-a=annotation('textbox',[0.77 0.61 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
-a.FontSize = 8;
-b=annotation('textbox',[0.13 0.625 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',axcorr(1,2),axcorr(1,3),axcorr(1,4),axcorr(2,3),axcorr(2,4),axcorr(3,4))],'FitBoxToText','on');
-b.FontSize = 8;
-c=annotation('textbox',[0.335 0.9225 0 0],'String',[sprintf('v = %.2f knots',vavg)],'FitBoxToText','on');
-c.FontSize = 8;
-text(d1.t(10),4*max(axout,[],'all')/5,sprintf('mean = %f cm/s^2',axavg),'FontSize',8)
-ylabel('a_x [cm/s^2]')
-sat=title(sprintf('Ship Acceleration Components (Every %dth Point)',pint3));
-xticklabels([])
-% grey out bad data
-plot(d1.t(1:pint3:end-2),bax1(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:pint3:end-2),bax2(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:pint3:end-2),bax3(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:pint3:end-2),bax4(1:pint3:end),'color',[0.7 0.7 0.7])
-
-% plot ay
-ah(4)=subplot(5,2,[7 8]);
-plot(d1.t(1:pint3:end-2),gay1(1:pint3:end),'r')
-hold on
-plot(d2.t(1:pint3:end-2),gay2(1:pint3:end),'g')
-plot(d3.t(1:pint3:end-2),gay3(1:pint3:end),'b')
-plot(d4.t(1:pint3:end-2),gay4(1:pint3:end),'k')
-grid on
-longticks([],3)
-xlim([d1.t(1) d1.t(end-2)])
-ay = abs([gay1 gay2 gay3 gay4]);
-try
-    ayout = rmoutliers(ay,'gesd');
-catch
-    ayout = rmoutliers(ay,'mean');
-end
-outpct = (length(ay)-length(ayout))*100/length(ay);
-ylim([-max(ayout,[],'all')-0.005*abs(max(ayout,[],'all')) max(ayout,[],'all')+0.005*abs(max(ayout,[],'all'))])
-a=annotation('textbox',[0.77 0.4375 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
-a.FontSize = 8;
-b=annotation('textbox',[0.13 0.45 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',aycorr(1,2),aycorr(1,3),aycorr(1,4),aycorr(2,3),aycorr(2,4),aycorr(3,4))],'FitBoxToText','on');
-b.FontSize = 8;
-c=annotation('textbox',[0.4 0.45 0 0],'String',[sprintf('GPS 1 - red, GPS 2 - green,\nGPS 3 - blue, GPS 4 - black')],'FitBoxToText','on');
-c.FontSize = 8;
-text(d1.t(10),4*max(ayout,[],'all')/5,sprintf('mean = %f cm/s^2',ayavg),'FontSize',8)
-ylabel('a_y [cm/s^2]')
-xticklabels([])
-% grey out bad data
-plot(d1.t(1:pint3:end-2),bay1(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:pint3:end-2),bay2(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:pint3:end-2),bay3(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:pint3:end-2),bay4(1:pint3:end),'color',[0.7 0.7 0.7])
-
-% plot az
-ah(5)=subplot(5,2,[9 10]);
-plot(d1.t(1:pint3:end-2),gaz1(1:pint3:end),'r')
-hold on
-plot(d2.t(1:pint3:end-2),gaz2(1:pint3:end),'g')
-plot(d3.t(1:pint3:end-2),gaz3(1:pint3:end),'b')
-plot(d4.t(1:pint3:end-2),gaz4(1:pint3:end),'k')
-grid on
-longticks([],3)
-xlim([d1.t(1) d1.t(end-2)])
-az = abs([gaz1 gaz2 gaz3 gaz4]);
-try
-    azout = rmoutliers(az,'gesd');
-catch
-    azout = rmoutliers(az,'mean');
-end
-outpct = (length(az)-length(azout))*100/length(az);
-ylim([-max(azout,[],'all')-0.005*abs(max(azout,[],'all')) max(azout,[],'all')+0.005*abs(max(azout,[],'all'))])
-a=annotation('textbox',[0.77 0.265 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
-a.FontSize = 8;
-b=annotation('textbox',[0.13 0.2775 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',azcorr(1,2),azcorr(1,3),azcorr(1,4),azcorr(2,3),azcorr(2,4),azcorr(3,4))],'FitBoxToText','on');
-b.FontSize = 8;
-c=annotation('textbox',[0.44 0.2775 0 0],'String',[sprintf('X12, X13, X14,\nX23, X24, X34')],'FitBoxToText','on');
-c.FontSize = 8;
-text(d1.t(10),4*max(azout,[],'all')/5,sprintf('mean = %f cm/s^2',azavg),'FontSize',8)
-ylabel('a_z [cm/s^2]')
-% grey out bad data
-plot(d1.t(1:pint3:end-2),baz1(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d2.t(1:pint3:end-2),baz2(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d3.t(1:pint3:end-2),baz3(1:pint3:end),'color',[0.7 0.7 0.7])
-plot(d4.t(1:pint3:end-2),baz4(1:pint3:end),'color',[0.7 0.7 0.7])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

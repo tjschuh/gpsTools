@@ -28,7 +28,7 @@ function varargout=kinpro(prdfile,xyzpos,plt,demean)
 % R2020a Update 4 (9.8.0.1417392)
 %
 % Originally written by tschuh-at-princeton.edu, 03/04/2022
-% Last modified by tschuh-at-princeton.edu, 03/29/2022
+% Last modified by tschuh-at-princeton.edu, 05/20/2022
 
 % Default file name
 defval('prdfile','kin_28-29_pton.prd')
@@ -112,8 +112,10 @@ if plt == 1
         d.enu(:,3) = d.enu(:,3)-mean(d.enu(:,3));
     end
         
-    f=figure;
-    f.Position=[70 120 560 685];
+    %f=figure;
+    %f.Position=[70 120 560 685];
+    figure(1)
+    clf
 
     ah(1)=subplot(4,1,1);
     plot(d.t,d.enu(:,1),'k')

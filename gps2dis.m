@@ -14,15 +14,11 @@ function gps2dis(files,protype)
 % gps2dis({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 11/12/2021
-% Last modified by fjsimons-at-princeton.edu, 05/17/2022
+% Last modified by tschuh-at-princeton.edu, 05/26/2022
 
-%NOT DONE
-
-% need some serious edits to this:
-% fix annotations/text boxes
-% change input structure
-% currently statistics (correlation coeff, ployfit, rms, std)
-% are computed using all data including greyed out parts
+% to-do:
+% fix annotations/text boxes outside axes
+% add rtk vs ppp differences (protype not used currently)
 
 % use mat2mod to convert data to all be same time spans with no time gaps
 [d,tmax] = mat2mod(files);
@@ -41,6 +37,7 @@ clf
 cols = {'r','g','b','k'};
 
 for i=1:length(d)
+    % plot heights of all 4 GPS receivers
     % find the good data condition
     cond1=d(i).pdop<pthresh & d(i).pdop~=0 & d(i).nsats(:,1)>nthresh;
     % [g b] = h
@@ -58,7 +55,7 @@ for i=1:length(d)
     allvx(:,i) = vx;
     allvy(:,i) = vy;
     
-    % plot heights of all 4 units all on 1 plot
+    % actually plot heights of all 4 recs
     ah(1)=subplot(5,2,[1 3]);
     plot(d(i).t(1:pint1:end),gh(1:pint1:end),cols{i})
     hold on
@@ -75,7 +72,7 @@ for i=1:length(d)
         xlim([d(i).t(1) d(i).t(end)])
         xticklabels([])
         ylabel('Height relative to WGS84 [m]')
-        title(sprintf('Ship Height (Every %dth Point)',pint1))
+        t1=title(sprintf('Ship Height (Every %dth Point)',pint1));
         grid on
         longticks
         % to set best ylim, remove outliers from alldht
@@ -88,16 +85,15 @@ for i=1:length(d)
         outpct = (length(allht)-length(allhtout))*100/length(allht);
         ylim([min(allhtout,[],'all')-0.005*abs(min(allhtout,[],'all')) ...
               max(allhtout,[],'all')+0.005*abs(max(allhtout,[],'all'))])
-        text(d(i).t(floor(0.05*length(d(i).t))),ah(1).YLim(1)+0.005*abs(ah(1).YLim(1)),...
-             sprintf('%05.2f%% Outliers',outpct))
-        text(d(i).t(floor(0.45*length(d(i).t))),ah(1).YLim(1)+0.005*abs(ah(1).YLim(1)),...
-             sprintf('Nsats > %d & PDOP < %d',nthresh,pthresh))
-        text(d(i).t(floor(0.6*length(d(i).t))),ah(1).YLim(2)-0.005*abs(ah(1).YLim(2)),...
-             sprintf('v = %.2f knots',vavg))
+        text(d(i).t(floor(0.03*length(d(i).t))),ah(1).YLim(1)+0.0025*abs(ah(1).YLim(1)),...
+             sprintf('%05.2f%% Outliers',outpct),'FontSize',9)
+        text(d(i).t(floor(0.475*length(d(i).t))),ah(1).YLim(1)+0.0025*abs(ah(1).YLim(1)),...
+             sprintf('Nsats > %d & PDOP < %d',nthresh,pthresh),'FontSize',9)
+        text(d(i).t(floor(0.65*length(d(i).t))),ah(1).YLim(2)-0.0025*abs(ah(1).YLim(2)),...
+             sprintf('v = %.2f knots',vavg),'FontSize',9)
     end
 
-    %PUT DISTANCES CODE HERE
-    
+    % plot GPS receiver acceleration components
     % compute acceleration components ax, ay, az in cm/s^2
     ax = diff(vx)./(2*seconds(diff(d(i).t(1:end-1))));
     ay = diff(vy)./(2*seconds(diff(d(i).t(1:end-1))));
@@ -123,6 +119,7 @@ for i=1:length(d)
     plot(d(i).t(1:pint3:end-2),gax(1:pint3:end),cols{i})
     hold on
     plot(d(i).t(1:pint3:end-2),bax(1:pint3:end),'color',[0.7 0.7 0.7])
+    % cosmetics
     if i == length(d)
         grid on
         longticks([],3)
@@ -138,11 +135,12 @@ for i=1:length(d)
         ylim([-max(axout,[],'all')-0.005*abs(max(axout,[],'all')) max(axout,[],'all')+0.005*abs(max(axout,[],'all'))])
         a=annotation('textbox',[0.77 0.61 0 0],'String',[sprintf('%05.2f%% Outliers',outpct)],'FitBoxToText','on');
         a.FontSize = 8;
+        %boxtex('ur',ah(3),sprintf('%05.2f%% Outliers',outpct),10)
         b=annotation('textbox',[0.13 0.625 0 0],'String',[sprintf('%.2f, %.2f, %.2f,\n%.2f, %.2f, %.2f',axcorr(1,2),axcorr(1,3),axcorr(1,4),axcorr(2,3),axcorr(2,4),axcorr(3,4))],'FitBoxToText','on');
         b.FontSize = 8;
         text(d(i).t(10),0.8*max(axout,[],'all'),sprintf('mean = %f cm/s^2',axavg),'FontSize',8)
         ylabel('a_x [cm/s^2]')
-        title(sprintf('Ship Acceleration Components (Every %dth Point)',pint3))
+        t3=title(sprintf('Ship Acceleration Components (Every %dth Point)',pint3));
         xticklabels([])
     end
 
@@ -151,6 +149,7 @@ for i=1:length(d)
     plot(d(i).t(1:pint3:end-2),gay(1:pint3:end),cols{i})
     hold on
     plot(d(i).t(1:pint3:end-2),bay(1:pint3:end),'color',[0.7 0.7 0.7])
+    % cosmetics
     if i == length(d)
         grid on
         longticks([],3)
@@ -180,6 +179,7 @@ for i=1:length(d)
     plot(d(i).t(1:pint3:end-2),gaz(1:pint3:end),cols{i})
     hold on
     plot(d(i).t(1:pint3:end-2),baz(1:pint3:end),'color',[0.7 0.7 0.7])
+    % cosmetics
     if i == length(d)
         grid on
         longticks([],3)
@@ -203,101 +203,58 @@ for i=1:length(d)
         ylabel('a_z [cm/s^2]')
     end        
 end
-keyboard
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% plot distances between all 4 GPS units
-% compute all 6 distances between 4 GPS receivers
-dist12 = sqrt((d1.xyz(:,1)-d2.xyz(:,1)).^2 + (d1.xyz(:,2)-d2.xyz(:,2)).^2 + (d1.xyz(:,3)-d2.xyz(:,3)).^2);
-normdist12 = dist12 - nanmean(dist12) + 1;
-dist12 = rmNaNrows(dist12); p = polyfit([1:length(dist12)]',dist12,1);
-a12 = 1000*p(1); b12 = p(2); rms12 = rms(dist12); std12 = std(1000*dist12);
-x12 = (a12/1000).*[1:length(dist12)]' + b12; e12 = x12 - dist12; erms12 = 1000*rms(e12);
-dist13 = sqrt((d1.xyz(:,1)-d3.xyz(:,1)).^2 + (d1.xyz(:,2)-d3.xyz(:,2)).^2 + (d1.xyz(:,3)-d3.xyz(:,3)).^2);
-normdist13 = dist13 - nanmean(dist13) + 2;
-dist13 = rmNaNrows(dist13); p = polyfit([1:length(dist13)]',dist13,1);
-a13 = 1000*p(1); b13 = p(2); rms13 = rms(dist13); std13 = std(1000*dist13);
-x13 = (a13/1000).*[1:length(dist13)]' + b13; e13 = x13 - dist13; erms13 = 1000*rms(e13);
-dist14 = sqrt((d1.xyz(:,1)-d4.xyz(:,1)).^2 + (d1.xyz(:,2)-d4.xyz(:,2)).^2 + (d1.xyz(:,3)-d4.xyz(:,3)).^2);
-normdist14 = dist14 - nanmean(dist14) + 3;
-dist14 = rmNaNrows(dist14); p = polyfit([1:length(dist14)]',dist14,1);
-a14 = 1000*p(1); b14 = p(2); rms14 = rms(dist14); std14 = std(1000*dist14);
-x14 = (a14/1000).*[1:length(dist14)]' + b14; e14 = x14 - dist14; erms14 = 1000*rms(e14);
-dist23 = sqrt((d2.xyz(:,1)-d3.xyz(:,1)).^2 + (d2.xyz(:,2)-d3.xyz(:,2)).^2 + (d2.xyz(:,3)-d3.xyz(:,3)).^2);
-normdist23 = dist23 - nanmean(dist23) + 4;
-dist23 = rmNaNrows(dist23); p = polyfit([1:length(dist23)]',dist23,1);
-a23 = 1000*p(1); b23 = p(2); rms23 = rms(dist23); std23 = std(1000*dist23);
-x23 = (a23/1000).*[1:length(dist23)]' + b23; e23 = x23 - dist23; erms23 = 1000*rms(e23);
-dist24 = sqrt((d2.xyz(:,1)-d4.xyz(:,1)).^2 + (d2.xyz(:,2)-d4.xyz(:,2)).^2 + (d2.xyz(:,3)-d4.xyz(:,3)).^2);
-normdist24 = dist24 - nanmean(dist24) + 5;
-dist24 = rmNaNrows(dist24); p = polyfit([1:length(dist24)]',dist24,1);
-a24 = 1000*p(1); b24 = p(2); rms24 = rms(dist24); std24 = std(1000*dist24);
-x24 = (a24/1000).*[1:length(dist24)]' + b24; e24 = x24 - dist24; erms24 = 1000*rms(e24);
-dist34 = sqrt((d3.xyz(:,1)-d4.xyz(:,1)).^2 + (d3.xyz(:,2)-d4.xyz(:,2)).^2 + (d3.xyz(:,3)-d4.xyz(:,3)).^2);
-normdist34 = dist34 - nanmean(dist34) + 6;
-dist34 = rmNaNrows(dist34); p = polyfit([1:length(dist34)]',dist34,1);
-a34 = 1000*p(1); b34 = p(2); rms34 = rms(dist34); std34 = std(1000*dist34);
-x34 = (a34/1000).*[1:length(dist34)]' + b34; e34 = x34 - dist34; erms34 = 1000*rms(e34);
+% plot distances between all GPS receivers with separate loop
+% # of distances = all combos of # of GPS recs taken 2 at a time
+pairs = nchoosek(1:length(d),2);
+for i = 1:length(pairs)
+    % compute Euclidean distance between GPS pair
+    dist = sqrt((d(pairs(i,1)).xyz(:,1)-d(pairs(i,2)).xyz(:,1)).^2 + (d(pairs(i,1)).xyz(:,2)-d(pairs(i,2)).xyz(:,2)).^2 + (d(pairs(i,1)).xyz(:,3)-d(pairs(i,2)).xyz(:,3)).^2);
+    % subtract off mean of data and offset each pair by constant
+    normdist = dist - nanmean(dist) + i;
+    % remove outliers
+    dist(any(isnan(dist),2),:)=[];
+    % fit line to data
+    p = polyfit([1:length(dist)]',dist,1);
+    % compute some statistics
+    a = 1000*p(1); b = p(2); rmsd = rms(dist); stdd = std(1000*dist);
+    x = (a/1000).*[1:length(dist)]' + b; e = x - dist; erms = 1000*rms(e);
 
-% find good (g) and bad (b) data
-% [g b] = h
-d12 = normdist12; d13 = normdist13; d14 = normdist14;
-d23 = normdist23; d24 = normdist24; d34 = normdist34;
-good12 = d12; bad12 = d12; good13 = d13; bad13 = d13; good14 = d14; bad14 = d14;
-good23 = d23; bad23 = d23; good24 = d24; bad24 = d24; good34 = d34; bad34 = d34;
-good12(p1>=pthresh | p1==0 | n1<=nthresh | p2>=pthresh | p2==0 | n2<=nthresh) = NaN;
-bad12(p1<pthresh & n1>nthresh & p2<pthresh & n2>nthresh) = NaN;
-good13(p1>=pthresh | p1==0 | n1<=nthresh | p3>=pthresh | p3==0 | n3<=nthresh) = NaN;
-bad13(p1<pthresh & n1>nthresh & p3<pthresh & n3>nthresh) = NaN;
-good14(p1>=pthresh | p1==0 | n1<=nthresh | p4>=pthresh | p4==0 | n4<=nthresh) = NaN;
-bad14(p1<pthresh & n1>nthresh & p4<pthresh & n4>nthresh) = NaN;
-good23(p2>=pthresh | p2==0 | n2<=nthresh | p3>=pthresh | p3==0 | n3<=nthresh) = NaN;
-bad23(p2<pthresh & n2>nthresh & p3<pthresh & n3>nthresh) = NaN;
-good24(p2>=pthresh | p2==0 | n2<=nthresh | p4>=pthresh | p4==0 | n4<=nthresh) = NaN;
-bad24(p2<pthresh & n2>nthresh & p4<pthresh & n4>nthresh) = NaN;
-good34(p3>=pthresh | p3==0 | n3<=nthresh | p4>=pthresh | p4==0 | n4<=nthresh) = NaN;
-bad34(p3<pthresh & n3>nthresh & p4<pthresh & n4>nthresh) = NaN;
+    cond3=d(pairs(i,1)).pdop<pthresh & d(pairs(i,1)).pdop~=0 & d(pairs(i,1)).nsats(:,1)>nthresh ...
+          & d(pairs(i,2)).pdop<pthresh & d(pairs(i,2)).pdop~=0 & d(pairs(i,2)).nsats(:,1)>nthresh;
 
-ah(2)=subplot(5,2,[2 4]);
-plot(d1.t(1:pint2:end),good12(1:pint2:end))
-hold on
-plot(d1.t(1:pint2:end),good13(1:pint2:end))
-plot(d1.t(1:pint2:end),good14(1:pint2:end))
-plot(d1.t(1:pint2:end),good23(1:pint2:end))
-plot(d1.t(1:pint2:end),good24(1:pint2:end))
-plot(d1.t(1:pint2:end),good34(1:pint2:end))
-xlim([d1.t(1) d1.t(end)])
-xticklabels([])
-ylim([0.25 6.75])
-yticklabels({'1-2','1-3','1-4','2-3','2-4','3-4'})
-ylabel('GPS Pair')
-gpst=title(sprintf('Distances between GPS Receivers\n(Every %dth Point)',pint2));
-grid on
-longticks
-% grey out bad data
-plot(d1.t(1:pint2:end),bad12(1:pint2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:pint2:end),bad13(1:pint2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:pint2:end),bad14(1:pint2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:pint2:end),bad23(1:pint2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:pint2:end),bad24(1:pint2:end),'color',[0.7 0.7 0.7])
-plot(d1.t(1:pint2:end),bad34(1:pint2:end),'color',[0.7 0.7 0.7])
-text(d1.t(10),6.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a34,b34,rms34,std34,erms34),'FontSize',9)
-text(d1.t(10),5.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a24,b24,rms24,std24,erms24),'FontSize',9)
-text(d1.t(10),4.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a23,b23,rms23,std23,erms23),'FontSize',9)
-text(d1.t(10),3.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a14,b14,rms14,std14,erms14),'FontSize',9)
-text(d1.t(10),2.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a13,b13,rms13,std13,erms13),'FontSize',9)
-text(d1.t(10),1.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a12,b12,rms12,std12,erms12),'FontSize',9)
-text(d1.t(10),0.5,sprintf('a [mm/s], b [m], rms(x) [m], std [mm], rms(e) [mm]'),'FontSize',7.5)
+    % only good data
+    gd=normdist; gd(~cond3)=NaN;
+    % only bad data
+    bd=normdist; bd(cond3)=NaN;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % actually plot GPS pair distance w.r.t time
+    ah(2)=subplot(5,2,[2 4]);
+    plot(d(1).t(1:pint2:end),gd(1:pint2:end))
+    hold on
+    plot(d(1).t(1:pint2:end),bd(1:pint2:end),'color',[0.7 0.7 0.7])
+    text(d(1).t(10),i+0.4,sprintf('%f, %05.3f, %05.3f, %.0f, %.0f',a,b,rmsd,stdd,erms),'FontSize',9)
+    ah(2).YTickLabel{i} = sprintf('%g-%g',pairs(i,1),pairs(i,2));
+    % cosmetics
+    if i == length(pairs)
+        xlim([d(1).t(1) d(1).t(end)])
+        xticklabels([])
+        ylim([0.25 length(pairs)+0.75])
+        ylabel('GPS Pair')
+        t2=title(sprintf('Distances between GPS Receivers\n(Every %dth Point)',pint2));
+        grid on
+        longticks
+        text(d(1).t(10),0.5,sprintf('a [mm/s], b [m], rms(x) [m], std [mm], rms(e) [mm]'),'FontSize',7.5)
+    end
+end
 
 % finishing touches
-tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d1.t(1)),datestr(d1.t(end))));
+tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d(1).t(1)),datestr(d(1).t(end))));
 movev(tt,0.3)
 
 a = annotation('textbox',[0.465 0.085 0 0],'String',['camp'],'FitBoxToText','on');
 a.FontSize = 12;
 keyboard
-figdisp(sprintf('all4plt-%s',fname),[],'',2,[],'epstopdf')
+figdisp(sprintf('gps2dis-%s',fname),[],'',2,[],'epstopdf')
 
 close

@@ -14,7 +14,7 @@ function gps2dis(files,protype)
 % gps2dis({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
 %
 % Originally written by tschuh-at-princeton.edu, 11/12/2021
-% Last modified by tschuh-at-princeton.edu, 05/26/2022
+% Last modified by tschuh-at-princeton.edu, 06/06/2022
 
 % to-do:
 % fix annotations/text boxes outside axes
@@ -252,9 +252,7 @@ end
 tt=supertit(ah([1 2]),sprintf('Ship Data from %s to %s',datestr(d(1).t(1)),datestr(d(1).t(end))));
 movev(tt,0.3)
 
-a = annotation('textbox',[0.465 0.085 0 0],'String',['camp'],'FitBoxToText','on');
-a.FontSize = 12;
-keyboard
-figdisp(sprintf('gps2dis-%s',fname),[],'',2,[],'epstopdf')
+%a = annotation('textbox',[0.465 0.085 0 0],'String',['camp'],'FitBoxToText','on');
+%a.FontSize = 12;
 
-close
+figdisp(sprintf('gps2dis-%s',fname),[],'',2,[],'epstopdf')

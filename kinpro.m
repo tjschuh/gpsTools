@@ -28,7 +28,7 @@ function varargout=kinpro(prdfile,xyzpos,plt,demean)
 % R2020a Update 4 (9.8.0.1417392)
 %
 % Originally written by tschuh-at-princeton.edu, 03/04/2022
-% Last modified by tschuh-at-princeton.edu, 05/20/2022
+% Last modified by tschuh-at-princeton.edu, 06/09/2022
 
 % Default file name
 defval('prdfile','kin_28-29_pton.prd')
@@ -111,26 +111,45 @@ if plt == 1
         d.enu(:,2) = d.enu(:,2)-mean(d.enu(:,2));
         d.enu(:,3) = d.enu(:,3)-mean(d.enu(:,3));
     end
-        
-    %f=figure;
-    %f.Position=[70 120 560 685];
+
+    % grey out bad data
+    % keep rows where nsats > nthresh and pdop < pthresh
+    nthresh = 5; pthresh = 7.5;
+    cond1=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
+    % [g b] = h
+    % only good data
+    ge=d.enu(:,1); ge(~cond1)=NaN;
+    gn=d.enu(:,2); gn(~cond1)=NaN;
+    gu=d.enu(:,3); gu(~cond1)=NaN;    
+    % only bad data
+    be=d.enu(:,1); be(cond1)=NaN;
+    bn=d.enu(:,2); bn(cond1)=NaN;
+    bu=d.enu(:,3); bu(cond1)=NaN;    
+
+    % actually plot
     figure(1)
     clf
 
     ah(1)=subplot(4,1,1);
-    plot(d.t,d.enu(:,1),'k')
+    plot(d.t,ge,'k')
+    %hold on
+    %plot(d.t,be,'color',[0.7 0.7 0.7])
     ylabel('east [m]')
-    cosmoenu(d.enu(:,1),d.t)
+    cosmoenu(ge,d.t)
     
     ah(2)=subplot(4,1,2);
-    plot(d.t,d.enu(:,2),'k')
+    plot(d.t,gn,'k')
+    %hold on
+    %plot(d.t,bn,'color',[0.7 0.7 0.7])
     ylabel('north [m]')
-    cosmoenu(d.enu(:,2),d.t)
+    cosmoenu(gn,d.t)
     
     ah(3)=subplot(4,1,3);
-    plot(d.t,d.enu(:,3),'k')
+    plot(d.t,gu,'k')
+    %hold on
+    %plot(d.t,bu,'color',[0.7 0.7 0.7])
     ylabel('up [m]')
-    cosmoenu(d.enu(:,3),d.t)
+    cosmoenu(gu,d.t)
     
     ah(4)=subplot(4,1,4);
     yyaxis left

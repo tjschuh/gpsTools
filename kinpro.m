@@ -1,5 +1,5 @@
-function varargout=kinpro(prdfile,xyzpos,plt,demean)
-% d=KINPRO(prdfile,xyzpos,plt,demean)
+function varargout=kinpro(prdfile,xyzpos,plt,demean,outrm)
+% d=KINPRO(prdfile,xyzpos,plt,demean,outrm)
 %
 % Makes/saves/loads a *.prd GNSS Precise Point Positioning solution file
 % (created by PPP2PRD or RTK2PRD) into a structured *.mat file (and plots),
@@ -11,6 +11,7 @@ function varargout=kinpro(prdfile,xyzpos,plt,demean)
 % xyzpos       approximate position xyz of station copied from RINEX header
 % plt          0 for no plot, 1 for plot (default: 1)
 % demean       0 for no demeaning, 1 for demeaning ENU data (default: 0)
+% outrm        0 for no outlier removal, 1 for outlier removal (default: 0)
 %
 % OUTPUT:
 %
@@ -20,8 +21,8 @@ function varargout=kinpro(prdfile,xyzpos,plt,demean)
 %
 % EXAMPLE:
 %
-% d=kinpro('kin_28-29_pton.prd',[1288235.7406 -4694422.9216 4107355.8820],1,0);
-% kinpro('kin_2018230-2018231_raul.prd',[-5566082.7400 -201282.8434 -3097636.2460],1,0)
+% d=kinpro('kin_28-29_pton.prd',[1288235.7406 -4694422.9216 4107355.8820],1,0,0);
+% kinpro('kin_2018230-2018231_raul.prd',[-5566082.7400 -201282.8434 -3097636.2460],1,0,0)
 %
 % TESTED ON:
 %
@@ -43,6 +44,9 @@ defval('plt',1)
 
 % Demean data or not, 0 --> dont demean
 defval('demean',0)
+
+% Remove outliers or not, 0 --> no removal
+defval('outrm',0)
 
 % if outfile doesnt exist, make it and save it, otherwise load it
 if exist(outfile1,'file')==0
@@ -112,42 +116,39 @@ if plt == 1
         d.enu(:,3) = d.enu(:,3)-mean(d.enu(:,3));
     end
 
-    % grey out bad data
-    % keep rows where nsats > nthresh and pdop < pthresh
-    nthresh = 5; pthresh = 7.5;
-    cond1=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
-    % [g b] = h
-    % only good data
-    ge=d.enu(:,1); ge(~cond1)=NaN;
-    gn=d.enu(:,2); gn(~cond1)=NaN;
-    gu=d.enu(:,3); gu(~cond1)=NaN;    
-    % only bad data
-    be=d.enu(:,1); be(cond1)=NaN;
-    bn=d.enu(:,2); bn(cond1)=NaN;
-    bu=d.enu(:,3); bu(cond1)=NaN;    
+    % redefine variables for plotting
+    ge=d.enu(:,1);
+    gn=d.enu(:,2);
+    gu=d.enu(:,3);
+    
+    % if user wants, grey out bad data
+    if outrm == 1
+        % keep rows where nsats > nthresh and pdop < pthresh
+        nthresh = 5; pthresh = 7.5;
+        cond1=d.pdop<pthresh & d.pdop~=0 & d.nsats(:,1)>nthresh;
 
+        % remove outliers from good data
+        ge(~cond1)=NaN;
+        gn(~cond1)=NaN;
+        gu(~cond1)=NaN;    
+    end
+    
     % actually plot
     figure(1)
     clf
 
     ah(1)=subplot(4,1,1);
     plot(d.t,ge,'k')
-    %hold on
-    %plot(d.t,be,'color',[0.7 0.7 0.7])
     ylabel('east [m]')
     cosmoenu(ge,d.t)
     
     ah(2)=subplot(4,1,2);
     plot(d.t,gn,'k')
-    %hold on
-    %plot(d.t,bn,'color',[0.7 0.7 0.7])
     ylabel('north [m]')
     cosmoenu(gn,d.t)
     
     ah(3)=subplot(4,1,3);
     plot(d.t,gu,'k')
-    %hold on
-    %plot(d.t,bu,'color',[0.7 0.7 0.7])
     ylabel('up [m]')
     cosmoenu(gu,d.t)
     

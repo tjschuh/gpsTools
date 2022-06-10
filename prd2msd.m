@@ -19,33 +19,61 @@ function prd2msd(prdfile,xyzpos,freq)
 % prd2msd('kin_2011070_0842.prd',[-3904422.6794  3484842.8454  3633777.2141],1)
 %
 % Originally written by tschuh-at-princeton.edu, 04/29/2022
+% Last modified by tschuh-at-princeton.edu, 06/10/2022
 
 % save .prd as .mat file and as struct d
-d = kinpro(prdfile,xyzpos,0,0);
+d = kin2pro(prdfile,xyzpos,0,0,0);
 
-% encoding format:
-% 11 = Steim-2 compression (data converted to int32)
-EF = 11;
-% multiplier to make data play well with Juypter Notebooks
-multi = 10000;
-% data
-LXE = multi.*d.enu(:,1);
-LXN = multi.*d.enu(:,2);
-LXU = multi.*d.enu(:,3);
-% data record length must by power of 2 >= 256
-sze = whos('LXE');
-RLE = sze.bytes;
-RLE = pow2(ceil(log2(RLE)));
-szn = whos('LXN');
-RLN = szn.bytes;
-RLN = pow2(ceil(log2(RLN)));
-szu = whos('LXU');
-RLU = szu.bytes;
-RLU = pow2(ceil(log2(RLU)));
-if RLE < 256 || RLN < 256 || RLU < 256
-    error('record length < 256 bytes')
+% need to separate d into multiple days
+% non-array variables to exclude from the tabling procedure
+drem={'timezone','ENUunit'};
+% fill in missing data with NaNs
+d=retimes(d,drem,{'secondly','fillwithmissing'});
+% find total number of days by adding in last 15 minutes (900 seconds)
+% and dividing by number of seconds in a day (86400 seconds)
+sind = 86400;
+numdays=(length(d.t)+899)/sind;
+
+% make mseed files for each day
+for i=1:numdays
+    % encoding format:
+    % 11 = Steim-2 compression (data converted to int32)
+    EF = 11;
+    % multiplier to make data play well with Juypter Notebooks
+    multi = 10000;
+    % data
+    % last day is missing last 15 minutes so formula breaks down
+    if i < numdays
+        LXE = multi.*d.enu((sind*(i-1))+1:sind*i,1);
+        LXN = multi.*d.enu((sind*(i-1))+1:sind*i,2);
+        LXU = multi.*d.enu((sind*(i-1))+1:sind*i,3);
+    else
+        LXE = multi.*d.enu((sind*(i-1))+1:end,1);
+        LXN = multi.*d.enu((sind*(i-1))+1:end,2);
+        LXU = multi.*d.enu((sind*(i-1))+1:end,3);
+    end
+    % data record length must by power of 2 >= 256
+    % set to 1024 for now
+    sze = whos('LXE');
+    RLE = sze.bytes; RLE = pow2(ceil(log2(RLE)));
+    RLE = 1024;
+    szn = whos('LXN');
+    RLN = szn.bytes; RLN = pow2(ceil(log2(RLN)));
+    RLN = 1024;
+    szu = whos('LXU');
+    RLU = szu.bytes; RLU = pow2(ceil(log2(RLU)));
+    RLU = 1024;
+    if RLE < 256 || RLN < 256 || RLU < 256
+        error('record length < 256 bytes')
+    end
+    % finally create mseed file for each component of data
+    if i < numdays
+        mkmseed('GN.0842.00.LXE',LXE,d.t((sind*(i-1))+1:sind*i),freq,EF,RLE)
+        mkmseed('GN.0842.00.LXN',LXN,d.t((sind*(i-1))+1:sind*i),freq,EF,RLN)
+        mkmseed('GN.0842.00.LXU',LXU,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+    else
+        mkmseed('GN.0842.00.LXE',LXE,d.t((sind*(i-1))+1:end),freq,EF,RLE)
+        mkmseed('GN.0842.00.LXN',LXN,d.t((sind*(i-1))+1:end),freq,EF,RLN)
+        mkmseed('GN.0842.00.LXU',LXU,d.t((sind*(i-1))+1:end),freq,EF,RLU)
+    end
 end
-% finally create mseed file for each component of data
-mkmseed('GN.0842.00.LXE',LXE,d.t,freq,EF,RLE)
-mkmseed('GN.0842.00.LXN',LXN,d.t,freq,EF,RLN)
-mkmseed('GN.0842.00.LXU',LXU,d.t,freq,EF,RLU)

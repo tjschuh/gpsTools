@@ -23,38 +23,49 @@ function prd2msd(prdfile,xyzpos,freq)
 
 % save .prd as .mat file and as struct d
 d = kin2pro(prdfile,xyzpos,0,0,0);
-
 % need to separate d into multiple days
 % non-array variables to exclude from the tabling procedure
 drem={'timezone','ENUunit'};
+% multiplier to signify level of precision (nm?)
+multi = 1e6;
+for i=1:3
+	d.enu(:,i)=floor(multi.*d.enu(:,i));
+end
 % fill in missing data with a constant
-%d=retimes(d,drem,{'secondly','fillwithmissing'});
-con = 999999;
-d=retimes(d,drem,{'secondly','fillwithconstant','Constant',con});
+d=retimes(d,drem,{'secondly','fillwithmissing'});
+con = -99999999;
+d.enu(isnan(d.enu))=con;
+d.nsats(isnan(d.nsats))=con;
+d.pdop(isnan(d.pdop))=con;
+%d=retimes(d,drem,{'secondly','fillwithconstant','Constant',con});
 % find total number of days by adding in last 15 minutes (900 seconds)
 % and dividing by number of seconds in a day (86400 seconds)
 sind = 86400;
 numdays=(length(d.t)+899)/sind;
 
-
+fifmin = con.*ones(899,1);
+tims = d.t(end) + seconds(1:899);
 
 % make mseed files for each day
 for i=1:numdays
     % encoding format:
     % 11 = Steim-2 compression (data converted to int32)
     EF = 11;
-    % multiplier to make data play well with Juypter Notebooks
-    multi = 1e6;
     % data
     % last day is missing last 15 minutes so formula breaks down
     if i < numdays
-        LXE = multi.*d.enu((sind*(i-1))+1:sind*i,1);
-        LXN = multi.*d.enu((sind*(i-1))+1:sind*i,2);
-        LXZ = multi.*d.enu((sind*(i-1))+1:sind*i,3);
+        LXE = d.enu((sind*(i-1))+1:sind*i,1);
+        LXN = d.enu((sind*(i-1))+1:sind*i,2);
+        LXZ = d.enu((sind*(i-1))+1:sind*i,3);
+        % accounting only for total num of sats
+        DOP = d.pdop((sind*(i-1))+1:sind*i,1);
+        SAT = d.nsats((sind*(i-1))+1:sind*i,1);
     else
-        LXE = multi.*d.enu((sind*(i-1))+1:end,1);
-        LXN = multi.*d.enu((sind*(i-1))+1:end,2);
-        LXZ = multi.*d.enu((sind*(i-1))+1:end,3);
+        LXE = [d.enu((sind*(i-1))+1:end,1); fifmin];
+        LXN = [d.enu((sind*(i-1))+1:end,2); fifmin];
+        LXZ = [d.enu((sind*(i-1))+1:end,3); fifmin];
+        DOP = [d.pdop((sind*(i-1))+1:end,1); fifmin];
+        SAT = [d.nsats((sind*(i-1))+1:end,1); fifmin];
     end
     % data record length must by power of 2 >= 256
     % set to 1024 for now
@@ -71,14 +82,18 @@ for i=1:numdays
         error('record length < 256 bytes')
     end
     % finally create mseed file for each component of data
+
     if i < numdays
         mkmseed('GN.0842.00.LXE',LXE,d.t((sind*(i-1))+1:sind*i),freq,EF,RLE)
         mkmseed('GN.0842.00.LXN',LXN,d.t((sind*(i-1))+1:sind*i),freq,EF,RLN)
         mkmseed('GN.0842.00.LXZ',LXZ,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+        mkmseed('GN.0842.00.DOP',DOP,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+        mkmseed('GN.0842.00.SAT',SAT,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
     else
-        mkmseed('GN.0842.00.LXE',LXE,d.t((sind*(i-1))+1:end),freq,EF,RLE)
-        mkmseed('GN.0842.00.LXN',LXN,d.t((sind*(i-1))+1:end),freq,EF,RLN)
-        mkmseed('GN.0842.00.LXZ',LXZ,d.t((sind*(i-1))+1:end),freq,EF,RLU)
+        mkmseed('GN.0842.00.LXE',LXE,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLE)
+        mkmseed('GN.0842.00.LXN',LXN,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLN)
+        mkmseed('GN.0842.00.LXZ',LXZ,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
+	mkmseed('GN.0842.00.DOP',DOP,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
+        mkmseed('GN.0842.00.SAT',SAT,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
     end
-    keyboard
 end

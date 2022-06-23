@@ -1,25 +1,25 @@
 function prd2msd(prdfile,xyzpos,freq)
 % PRD2MSD(prdfile,xyzpos,freq)
 %
-% convert a .prd file to .mat and then to mseed with the correct name
+% convert a .prd file to .mat and then to .mseed with the correct name
 %
 % INPUT:
 %
-% prdfile
-% xyzpos
-% freq
+% prdfile         *.prd output file produced via PRIDE PPP-AR
+% xyzpos          approx position of GPS receiver from RINEX header
+% freq            sampling interval of GPS data
 %
 % OUTPUT:
 %
-% .mat file
-% mseed file
+% .mat file      struct containing time series of East, North, & Up components of GPS station
+% .mseed file    file containing time series of East, North, & Up components of GPS station
 %
 % EXAMPLES:
 %
 % prd2msd('kin_2011070_0842.prd',[-3904422.6794  3484842.8454  3633777.2141],1)
 %
 % Originally written by tschuh-at-princeton.edu, 04/29/2022
-% Last modified by tschuh-at-princeton.edu, 06/10/2022
+% Last modified by tschuh-at-princeton.edu, 06/23/2022
 
 % save .prd as .mat file and as struct d
 d = kin2pro(prdfile,xyzpos,0,0,0);
@@ -27,8 +27,10 @@ d = kin2pro(prdfile,xyzpos,0,0,0);
 % need to separate d into multiple days
 % non-array variables to exclude from the tabling procedure
 drem={'timezone','ENUunit'};
-% fill in missing data with NaNs
-d=retimes(d,drem,{'secondly','fillwithmissing'});
+% fill in missing data with a constant
+%d=retimes(d,drem,{'secondly','fillwithmissing'});
+con = 999999;
+d=retimes(d,drem,{'secondly','fillwithconstant','Constant',con});
 % find total number of days by adding in last 15 minutes (900 seconds)
 % and dividing by number of seconds in a day (86400 seconds)
 sind = 86400;

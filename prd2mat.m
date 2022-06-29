@@ -34,8 +34,7 @@ function varargout=prd2mat(prdfile,protype,plt)
 % 9.0.0.341360 (R2016a) - without the timetabling... 
 %
 % Originally written by tschuh-at-princeton.edu, 10/06/2021
-% Last modified by tschuh-at-princeton.edu, 02/03/2022
-% Last modified by fjsimons-at-princeton.edu, 02/08/2022
+% Last modified by tschuh-at-princeton.edu, 06/29/2022
 
 % TO DO:
 % extract trip section from fname somehow
@@ -88,7 +87,7 @@ if protype=='ppp'
     satcol=9:15;
     chuck=~sum(dm(:,satcol));
     hsat=sattypes(~chuck);
-    sats=dm(:,satcol(~chuck))
+    sats=dm(:,satcol(~chuck));
     
     % make data structure explicitly
     d.(h{1}) = t;

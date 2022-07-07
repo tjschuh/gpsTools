@@ -102,13 +102,13 @@ stda=std(differ(rows)*tmulti{1,1});
 % plotting
 figure(1)
 clf
-lwidth = 1.5;
+lwidth = 0.5;
 
 % plot st and hst
 ah(1)=subplot(3,3,[1 3]);
-p(1)=plot(d.t,hst,'-','color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
+p(1)=plot(d.t,hst,'-','color',[0.8500 0.3250 0.0980],'LineWidth',3*lwidth);
 hold on
-p(2)=plot(d.t,st,'b--','LineWidth',lwidth);
+p(2)=plot(d.t,st,'k--','LineWidth',2*lwidth);
 hold off
 % Must set ticks every n hours
 datetick('x','HH')
@@ -119,14 +119,25 @@ ylim([3.25 9])
 yl(1)=ylabel('slant range time [s]');
 %title(sprintf('hst and st, ocean depth = %g m',oceandep))
 t(1)=title(sprintf('hst and st'));
-legend({'pred','obs'})
+axes(ah(1))
+bx=text(737958,8.5,sprintf('%s = [%g %g %g] mm','\Delta',xyzn));
+set(bx,'FontSize',6)
+
+leg(1)=legend({'pred','obs'});
+movev(leg(1),.035)
+moveh(leg(1),.025)
+
 
 % plot absolute time differences
 ah(2)=subplot(3,3,[4 6]);
 p(3)=plot(d.t,differ*tmulti{1,1},'color',[0.8500 0.3250 0.0980],'LineWidth',lwidth);
 hold on
-p(4)=plot(d.t,movmean(differ*tmulti{1,1},3600,'omitnan'),'b','LineWidth',lwidth);
+p(4)=plot(d.t,movmean(differ*tmulti{1,1},3600,'omitnan'),'y','LineWidth',2*lwidth);
 hold off
+leg(2)=legend({'pred-obs','1-hr average'},'Location','NorthWest');
+movev(leg(2),.085)
+moveh(leg(2),-.04)
+
 % Must set ticks every n hours
 datetick('x','HH')
 
@@ -141,20 +152,14 @@ set(ah(2),'YaxisLocation','right')
 
 set(yl(2),'Interpreter','TeX')
 xl(1)=xlabel('time [h]');
-if pval >= 1e-15
-     text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-          sprintf('dw = %.3f, p = %.3g',dw,pval));
-else
-    text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('dw = %.3f, p = 0',dw));
+if pval <= 10^6*eps
+  pval=0;
 end
-if pval >= pthresh
-    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('ACCEPTED'))
-else
-    text(ah(2).XLim(2)-0.25*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
-         sprintf('REJECTED'))
-end
+tx(1)=text(ah(2).XLim(1)+0.01*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+     sprintf('dw = %.3f, p = %.3g',dw,pval));
+decx={'ACCEPTED','REJECTED'};
+tx(2)=text(ah(2).XLim(2)-0.015*abs(ah(2).XLim(2)-ah(2).XLim(1)),0.9*ah(2).YLim(1),...
+     decx{2-[pval>=pthresh]},'HorizontalAlignment','right');
 
 % plot absolute time differences
 ah(3)=subplot(3,3,7);
@@ -188,7 +193,7 @@ refx=min(d.utme);
 refy=min(d.utmn);
 sclx=1000;
 scly=1000;
-plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1,'Color','k');
+plot((d.utme-refx)/sclx,(d.utmn-refy)/scly,'LineWidth',1/2,'Color','k');
 hold on
 scatter((zex-refx)/sclx,(zwi-refy)/scly,5,...
         'Marker','o','MarkerFaceColor','k','MarkerEdgeColor','k')
@@ -219,11 +224,13 @@ movev(tt,0.325);
 % sage gage
 set(ttt{1},'FontSize',6)
 set(ttt{2},'FontSize',6)
+set(tx,'FontSize',6)
 set(ah,'FontSize',7)
 set([xl yl],'FontSize',7)
 delete([tt t(1) t(2) t(3) t(4)])
 movev(ah(2),0.05)
 movev(ah(3:5),0.03);
+
 
 figdisp([],[],[],2)
 
@@ -267,7 +274,7 @@ pd = fitdist(data,'Normal');
 xvals = b.XData; 
 yvals = pdf(pd,xvals);
 area = sum(b.YData)*diff(b.XData(1:2));
-lain = plot(xvals,yvals*area,'LineWidth',2);
+lain = plot(xvals,yvals*area,'LineWidth',1);
 if gof > thresh | abs(mean(data)) > 2
     lain.LineStyle = '--';
 end

@@ -1,4 +1,4 @@
-function tags=dog2mat(diro,fname,xver)
+function varargout=dog2mat(diro,fname,xver)
 % tags=DOG2MAT(diro,fname,xver)
 %
 % Reads in all the *.txt files with data from the geodesy board
@@ -12,13 +12,8 @@ function tags=dog2mat(diro,fname,xver)
 % OUTPUT:
 %
 % tags        The tags in two-column format
-
 %
-% EXAMPLE:
-%
-% Ran this, then saved the outputs in a *mat
-%
-% Last modified by fjsimons-at-alum.mit.edu, 02/07/2022
+% Last modified by fjsimons-at-alum.mit.edu, 07/07/2022
 
 % Where data are being kep
 defval('diro','/data1/seafloorgeodesy/GeodesyBoard/DOG1/camp/txt')
@@ -41,17 +36,16 @@ else
 
   if xver==1
     % Make a plot if there is no output? Watch out for implicit vector sums
-    
   end
 
   % Save the filename
   save(fname,'tags')
 end
+
+% Optional output
+varns={tags};
+varargout=varns(1:nargout);
   
-
-
-keyboard
-
 % Save to MAT
 
 

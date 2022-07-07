@@ -12,12 +12,11 @@ function gps2his(files,protype)
 %
 % EXAMPLE:
 %
-% gps2his({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'})
-% gps2his({'0001-F089.mat','0002-F089.mat','0003-F089.mat','0004-F089.mat'})
+% gps2his({'0001-05340.mat','0002-05340.mat','0003-05340.mat','0004-05340.mat'},'ppp')
+% gps2his({'0001-F089.mat','0002-F089.mat','0003-F089.mat','0004-F089.mat'},'rtk')
 %
 % Originally written by tschuh-at-princeton.edu, 12/01/202
-% Last modified by tschuh-at-princeton.edu, 02/03/2022
-% Last modified by fjsimons-at-princeton.edu, 02/06/2022
+% Last modified by tschuh-at-princeton.edu, 06/06/2022
 
 % Output filename made from first input
 [~,fname,~] = fileparts(files{1});
@@ -87,7 +86,7 @@ end
 % make curves by using fitdist and pdf
 f=figure(1); clf
 [ah,ha]=krijetem(subnum(3,2));
-f.Position=[250 500 1100 600];
+%f.Position=[250 500 1100 600];
 
 % Convert to from SI in m to mm
 ucon=1000;
@@ -127,11 +126,13 @@ end
 
 % finishing touches - you should keep minmax times from before
 tt=supertit(ah([1 2]),sprintf('GNSS Pairwise Distance Hourly Residuals %s to %s',...
-			       datestr(tmax(1)),datestr(tmax(2))));
+                              datestr(tmax(1)),datestr(tmax(2))));
+tt.FontSize = 11;
 movev(tt,0.3)
 %set(tt,'FontName','Courier')
 % Centering is off for non-fixed-width fonts
 moveh(tt,0.07775)
+delete(tt)
 delete(xl(1:4))
 delete(yl([2 4 6]))
 

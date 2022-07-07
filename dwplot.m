@@ -13,18 +13,15 @@ function dwplot(d,data,thresh)
 %
 % OUTPUT:
 %
-% 2x2 subplot with error ellipses
+% 2x2 subplot with error ellipses and ship trajectory
 %    
 % EXAMPLES:
 %
 % run gps2syn.m first
-% pmat = [0 0.005 0.01 0.025 0.05 0.075 0.1 0.25 0.5];
-% for i=1:length(pmat)
-% dwplot(d,xyzdwp,pmat(i))
-% end
+% dwplot(d,xyzdwp,0.05)
 %    
 % Originally written by tschuh-at-princeton.edu, 04/05/2022
-% Last modified by tschuh-at-princeton.edu, 05/04/2022
+% Last modified by tschuh-at-princeton.edu, 06/06/2022
 
 % to do:
 % need to make Perturbations an input somehow
@@ -82,8 +79,10 @@ for i=1:3
     hold off
 end
 
+fourplt = 1;
+if fourplt == 1
 % plot ship trajectory w/ C-DOG
-% need xyz0 from gps2fwd if you want to plot C-DOG
+% need xyz0 from gps2fwd if you want to plot C-DOG location
 ah(4)=subplot(2,2,4);
 if isfield(d,'utme') == 1
     skp=1000;
@@ -128,6 +127,7 @@ else
     openup(ah(4),6,10);
     scatter(0,0,20,'Marker','o','MarkerFaceColor','r','MarkerEdgeColor','r')
     hold off
+end
 end
 
 % need to make Perturbations an input somehow

@@ -12,7 +12,7 @@ function dog2rng(fname)
 % dog2rng({'DOG1-camp.mat','DOG2-camp.mat','DOG3-camp.mat','DOG4-camp.mat'})
 %
 % Originally written by fjsimons-at-princeton.edu, 02/07/2022
-% Last modified by tschuh-at-princeton.edu, 07/20/2022
+% Last modified by tschuh-at-princeton.edu, 07/21/2022
 
 % make this much cleaner and lose duplicate code
 % play with cosmetics of figure
@@ -36,7 +36,7 @@ for i=1:4
     st=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},'ave',xyz(i,:),v,depth);
 
     % plot GNSS slant times from ship positions
-    subplot(4,1,i)
+    ah(i)=subplot(4,1,i);
     plot(st,'b'); hold on
 
     % Load the dog tags
@@ -54,7 +54,7 @@ for i=1:4
     % First, you eyeball an offset and cut it off
     tags=tags(ofx1(i,1):end,1:2)+ofy1(i,1);
     % plot once to see everything and get a baseline
-    p(1)=plot(tags(:,2),'g.','MarkerSize',3);
+    p(i,1)=plot(tags(:,2),'g.','MarkerSize',3);
     % Now need to stick in extra NaNs:
     % Shots are every seconds so difference between arrival times cannot be
     % much more than that, since the boat doesn't go that fast, and the
@@ -70,24 +70,28 @@ for i=1:4
     ntags=ntags(ofx2(i,1):end,1:2);
     % re-plot the new tags and you should be good
     if isnan(ofx3(i,1)) == 0
-        p(2)=plot([1:ofx3(i,1)]+stoff(i,1),ntags(1:ofx3(i,1),2),'r.','MarkerSize',3);
+        p(i,2)=plot([1:ofx3(i,1)]+stoff(i,1),ntags(1:ofx3(i,1),2),'r.','MarkerSize',3);
     else
-        p(2)=plot([1:length(ntags)]+stoff(i,1),ntags(:,2),'r.','MarkerSize',3);
+        p(i,2)=plot([1:length(ntags)]+stoff(i,1),ntags(:,2),'r.','MarkerSize',3);
     end
     % delete original plot after everything looks good    
-    delete(p(1))
+    delete(p(i,1))
     hold off
 
     % cosmetics
+    t(i)=title(sprintf('C-DOG approx position: x = %4.3f km, y = %4.3f km, z = %4.3f km',xyz(i,1)*1e-3,xyz(i,2)*1e-3,xyz(i,3)*1e-3));
     Nh=24;
     xlim([0 3600*Nh])
     ylim([0.85*min(st) 1.05*max(st)])
-    longticks(gca,2)
+    longticks(gca,4)
     grid on
-    xlabel('time [h]')
     nh=3;
-    xticks(0:nh*3600:size(ntags,1))
-    xticklabels(0:nh:floor(size(ntags,1)/3600))
+    xticks(0:nh*3600:size(ntags,1))    
+    xticklabels({})    
+    if i == 4
+        xlabel('time [h]')
+        xticklabels(0:nh:floor(size(ntags,1)/3600))
+    end
     ylabel('slant range time [s]')
     % plot legend
     hold on

@@ -12,10 +12,9 @@ function dog2rng(fname)
 % dog2rng({'DOG1-camp.mat','DOG2-camp.mat','DOG3-camp.mat','DOG4-camp.mat'})
 %
 % Originally written by fjsimons-at-princeton.edu, 02/07/2022
-% Last modified by tschuh-at-princeton.edu, 07/21/2022
+% Last modified by tschuh-at-princeton.edu, 07/22/2022
 
-% make this much cleaner and lose duplicate code
-% play with cosmetics of figure
+% add offset locations (start and end points where NaNs creep in)
 
 % DOG 1-4 approx positions
 xyz=[1.977967 -5.073198 3.3101016; 1.9765409 -5.074798706 3.308558817; ...
@@ -23,7 +22,7 @@ xyz=[1.977967 -5.073198 3.3101016; 1.9765409 -5.074798706 3.308558817; ...
 ofx1=[5823; 1; 1; 2250]; ofx2=[4800; 12500; 12000; 1]; ofx3=[NaN; 86000; NaN; 77500];
 % ofy values must be integers for some reason
 ofy1=[0; 1; 1; 2]; ofy2=[-4; -4; -3; -3]; ofy3=[0; 0; 0; -1];
-ofxy1=[73606; 81000; 80000; 60000]; ofxy2=[1; 1; 1; 22000]; ofxy3=[1; 1; 1; 41000];
+ofxy1=[72856; 80678; 79625; 59490]; ofxy2=[1; 1; 1; 22000]; ofxy3=[1; 1; 1; 41000];
 n=[1; 1; 1; 1]; stoff=[0; 0; 1000; 9000];
 
 % create a figure
@@ -78,6 +77,16 @@ for i=1:4
     delete(p(i,1))
     hold off
 
+    % to normalize the ntags data and have each dataset "count" the same way
+    % take the actual offset spot (ofxy1) and add the st offset used during plotting (stoff)
+    % and then subtract the bit used to cut off the end of the original ntags (ofx2)
+    % this number signifies where NaNs (approximately) end and data resumes (in hrs)
+    ofst(i,1) = (ofxy1(i,1) + stoff(i,1) - ofx2(i,1))/3600;
+    % these numbers are what we want ofst to equal
+    %ofxy1=[69556; 69322; 68625; 69809];
+    % these numbers are where NaNs begin and data cuts out (not implemented yet)
+    %[?; ?; ?; 68859];
+    
     % cosmetics
     t(i)=title(sprintf('C-DOG approx position: x = %4.3f km, y = %4.3f km, z = %4.3f km',xyz(i,1)*1e-3,xyz(i,2)*1e-3,xyz(i,3)*1e-3));
     Nh=24;
@@ -92,14 +101,26 @@ for i=1:4
         xlabel('time [h]')
         xticklabels(0:nh:floor(size(ntags,1)/3600))
     end
-    ylabel('slant range time [s]')
+    %ylabel('slant range time [s]')
+    txt(i)=text(900,0.9*ah(i).YLim(2),sprintf('offset at %2.2f hrs ',ofst(i,1)),'FontSize',8);
     % plot legend
     hold on
     pl(1)=plot(-1,-1,'b-');
     pl(2)=plot(-1,-1,'r-');
     hold off
     legs=legend(pl,'GNSS','Acoustic','FontSize',6,'Location','northeast');
+    % get subplot positions for single ylabel workaround
+    g(i,:)=get(ah(i),'position');
 end
+
+% workaround to make a single ylabel on plot
+height=g(1,2)+g(1,4)-g(4,2)-1.3*g(3,2);
+width=g(4,1)+g(4,3)-g(3,1);
+gg=axes('position',[g(3,1) g(3,2) width height],'visible','off'); 
+gg.XLabel.Visible='off';
+gg.YLabel.Visible='on';
+axes(gg)
+ylabel('slant range time [s]')
 
 keyboard
 

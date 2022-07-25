@@ -1,4 +1,4 @@
-function prd2msd(prdfile,xyzpos,freq)
+function prd2msd(prdfile,xpos,ypos,zpos,freq)
 % PRD2MSD(prdfile,xyzpos,freq)
 %
 % convert a .prd file to .mat and then to .mseed with the correct name
@@ -22,6 +22,7 @@ function prd2msd(prdfile,xyzpos,freq)
 % Last modified by tschuh-at-princeton.edu, 06/23/2022
 
 % save .prd as .mat file and as struct d
+xyzpos=[xpos ypos zpos];
 d = kin2pro(prdfile,xyzpos,0,0,0);
 % need to separate d into multiple days
 % non-array variables to exclude from the tabling procedure

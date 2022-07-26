@@ -1,5 +1,5 @@
-function dog2rng(fname)
-% DOG2RNG(fname)
+function tags=dog2rng(fname)
+% tags=DOG2RNG(fname)
 %
 % Works on file(s) made by DOG2MAT and turns it into a range measurement
 %
@@ -12,18 +12,32 @@ function dog2rng(fname)
 % dog2rng({'DOG1-camp.mat','DOG2-camp.mat','DOG3-camp.mat','DOG4-camp.mat'})
 %
 % Originally written by fjsimons-at-princeton.edu, 02/07/2022
-% Last modified by tschuh-at-princeton.edu, 07/22/2022
+% Last modified by tschuh-at-princeton.edu, 07/26/2022
 
 % add offset locations (start and end points where NaNs creep in)
+% have this function call gps2syn/dwplot
+
+% if not 4 DOGS used in input, dont run code
+%if length(fname) != 4
+%    error('Must have exactly 4 sets of DOG data')
+%end
 
 % DOG 1-4 approx positions
 xyz=[1.977967 -5.073198 3.3101016; 1.9765409 -5.074798706 3.308558817; ...
      1.980083296 -5.073417583 3.308558817; 1.978732384 -5.075186123 3.30666684].*1e6;
+% ofx1=how much to cut off at the beginning of the data before retimei is used
+% ofx2=how much more to cut off at the beginning of the data after retimei is used
+% ofx3=how much to cut off at the end of the data during plotting
 ofx1=[5823; 1; 1; 2250]; ofx2=[4800; 12500; 12000; 1]; ofx3=[NaN; 86000; NaN; 77500];
 % ofy values must be integers for some reason
+% ofy values are integer shifts in the y-direction of sections of the data
 ofy1=[0; 1; 1; 2]; ofy2=[-4; -4; -3; -3]; ofy3=[0; 0; 0; -1];
+% ofxy values are locations in the data to separate at and perform ofy shifts on
 ofxy1=[72856; 80678; 79625; 59490]; ofxy2=[1; 1; 1; 22000]; ofxy3=[1; 1; 1; 41000];
-n=[1; 1; 1; 1]; stoff=[0; 0; 1000; 9000];
+% n=threshold for NaN replacements-->if more than n consecutive missed detections, add NaNs
+% stoff=st offset to be used during plotting so GNSS and acoustic data line up
+n=[1; 1; 1; 1]; stoff=[-100; 0; 900; 8800];
+stoff2=[17100; 17200; 18500; 17100];
 
 % create a figure
 figure(1)
@@ -32,11 +46,11 @@ clf
 for i=1:4
     % generate GNSS slant times (st) using DOG approx position and GPS2RNG
     v=1500; depth=5225;
-    st=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},'ave',xyz(i,:),v,depth);
+    st(:,i)=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},'ave',xyz(i,:),v,depth);
 
     % plot GNSS slant times from ship positions
     ah(i)=subplot(4,1,i);
-    plot(st,'b'); hold on
+    plot(st(:,i),'b'); hold on
 
     % Load the dog tags
     load(char(fname(i)))
@@ -67,12 +81,14 @@ for i=1:4
     ntags(ofxy2(i,1):ofxy3(i,1),2)=ntags(ofxy2(i,1):ofxy3(i,1),2)+ofy3(i,1);
     % Eyeball a new offset and cut that off
     ntags=ntags(ofx2(i,1):end,1:2);
-    % re-plot the new tags and you should be good
+    % add in st offset for plot alignment
+    ntags(:,1)=ntags(:,1)-stoff2(i,1);
+    % if we have non-NaN ofx3 value, build that in
     if isnan(ofx3(i,1)) == 0
-        p(i,2)=plot([1:ofx3(i,1)]+stoff(i,1),ntags(1:ofx3(i,1),2),'r.','MarkerSize',3);
-    else
-        p(i,2)=plot([1:length(ntags)]+stoff(i,1),ntags(:,2),'r.','MarkerSize',3);
+        ntags=ntags(1:ofx3(i,1),1:2);
     end
+    % re-plot the new tags and you should be good
+    p(i,2)=plot(ntags(:,1),ntags(:,2),'r.','MarkerSize',3);
     % delete original plot after everything looks good    
     delete(p(i,1))
     hold off
@@ -83,15 +99,15 @@ for i=1:4
     % this number signifies where NaNs (approximately) end and data resumes (in hrs)
     ofst(i,1) = (ofxy1(i,1) + stoff(i,1) - ofx2(i,1))/3600;
     % these numbers are what we want ofst to equal
-    %ofxy1=[69556; 69322; 68625; 69809];
+    %ofst=[68056; 68178; 68625; 68489];
     % these numbers are where NaNs begin and data cuts out (not implemented yet)
     %[?; ?; ?; 68859];
     
     % cosmetics
-    t(i)=title(sprintf('C-DOG approx position: x = %4.3f km, y = %4.3f km, z = %4.3f km',xyz(i,1)*1e-3,xyz(i,2)*1e-3,xyz(i,3)*1e-3));
+    t(i)=title(sprintf('C-DOG approx position: x = %4.3f km, y = %4.3f km, z = %4.3f km',xyz(i,1)*1e-3,xyz(i,2)*1e-3,xyz(i,3)*1e-3),'FontSize',8);
     Nh=24;
     xlim([0 3600*Nh])
-    ylim([0.85*min(st) 1.05*max(st)])
+    ylim([0.85*min(st(:,i)) 1.05*max(st(:,i))])
     longticks(gca,4)
     grid on
     nh=3;
@@ -102,13 +118,13 @@ for i=1:4
         xticklabels(0:nh:floor(size(ntags,1)/3600))
     end
     %ylabel('slant range time [s]')
-    txt(i)=text(900,0.9*ah(i).YLim(2),sprintf('offset at %2.2f hrs ',ofst(i,1)),'FontSize',8);
+    txt(i)=text(900,0.9*ah(i).YLim(2),sprintf('offset at %2.2f hrs ',ofst(i,1)),'FontSize',7);
     % plot legend
     hold on
     pl(1)=plot(-1,-1,'b-');
     pl(2)=plot(-1,-1,'r-');
     hold off
-    legs=legend(pl,'GNSS','Acoustic','FontSize',6,'Location','northeast');
+    legs=legend(pl,'GNSS','Acoustic','FontSize',4,'Location','northeast');
     % get subplot positions for single ylabel workaround
     g(i,:)=get(ah(i),'position');
 end

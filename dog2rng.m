@@ -127,6 +127,7 @@ for i=1:4
     legs=legend(pl,'GNSS','Acoustic','FontSize',4,'Location','northeast');
     % get subplot positions for single ylabel workaround
     g(i,:)=get(ah(i),'position');
+    keyboard
 end
 
 % workaround to make a single ylabel on plot

@@ -10,7 +10,7 @@ function varargout=gps2rng(files,meth,xyz,v,depth)
 % files        cell with MAT-filename strings containing data structures
 %              of which the field 'xyz' will be used, in com coordinates
 % meth         averaging method (default: 'ave')
-% xyz          1x3 matrix with nominal coordinates of the target, in com
+% xyz          1x3 matrix with nominal coordinates of the target, in com, at the ocean surface
 % v            sound speed [m/s] (default: 1500)
 % depth        ocean depth [m] (default: 5225))
 %

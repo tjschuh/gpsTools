@@ -19,8 +19,12 @@ function prd2msd(prdfile,xpos,ypos,zpos,freq)
 % prd2msd('kin_2011070_0842.prd',[-3904422.6794  3484842.8454  3633777.2141],1)
 %
 % Originally written by tschuh-at-princeton.edu, 04/29/2022
-% Last modified by tschuh-at-princeton.edu, 06/23/2022
+% Last modified by tschuh-at-princeton.edu, 07/28/2022
 
+% first extract marker name from prdfile
+% due to PRIDE naming convention, marker name will always be characters 13-16
+marker = prdfile(13:16);    
+    
 % save .prd as .mat file and as struct d
 xyzpos=[xpos ypos zpos];
 d = kin2pro(prdfile,xyzpos,0,0,0);
@@ -83,18 +87,17 @@ for i=1:numdays
         error('record length < 256 bytes')
     end
     % finally create mseed file for each component of data
-
     if i < numdays
-        mkmseed('GN.0842.00.LXE',LXE,d.t((sind*(i-1))+1:sind*i),freq,EF,RLE)
-        mkmseed('GN.0842.00.LXN',LXN,d.t((sind*(i-1))+1:sind*i),freq,EF,RLN)
-        mkmseed('GN.0842.00.LXZ',LXZ,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
-        mkmseed('GN.0842.00.DOP',DOP,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
-        mkmseed('GN.0842.00.SAT',SAT,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+        mkmseed(sprintf('GN.%s.00.LXE',marker),LXE,d.t((sind*(i-1))+1:sind*i),freq,EF,RLE)
+        mkmseed(sprintf('GN.%s.00.LXN',marker),LXN,d.t((sind*(i-1))+1:sind*i),freq,EF,RLN)
+        mkmseed(sprintf('GN.%s.00.LXZ',marker),LXZ,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+        mkmseed(sprintf('GN.%s.00.DOP',marker),DOP,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
+        mkmseed(sprintf('GN.%s.00.SAT',marker),SAT,d.t((sind*(i-1))+1:sind*i),freq,EF,RLU)
     else
-        mkmseed('GN.0842.00.LXE',LXE,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLE)
-        mkmseed('GN.0842.00.LXN',LXN,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLN)
-        mkmseed('GN.0842.00.LXZ',LXZ,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
-	mkmseed('GN.0842.00.DOP',DOP,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
-        mkmseed('GN.0842.00.SAT',SAT,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
+        mkmseed(sprintf('GN.%s.00.LXE',marker),LXE,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLE)
+        mkmseed(sprintf('GN.%s.00.LXN',marker),LXN,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLN)
+        mkmseed(sprintf('GN.%s.00.LXZ',marker),LXZ,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
+	mkmseed(sprintf('GN.%s.00.DOP',marker),DOP,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
+        mkmseed(sprintf('GN.%s.00.SAT',marker),SAT,[d.t((sind*(i-1))+1:end); tims'],freq,EF,RLU)
     end
 end

@@ -1,5 +1,5 @@
-function tags=dog2rng(fname)
-% tags=DOG2RNG(fname)
+function varargout=dog2rng(fname)
+% [st,xtags,ytags]=DOG2RNG(fname)
 %
 % Works on file(s) made by DOG2MAT and turns it into a range measurement
 %
@@ -7,20 +7,27 @@ function tags=dog2rng(fname)
 %
 % fname         file(s) made by DOG2MAT with time tags (up to 4)
 %
+% OUTPUT:
+%
+% st           GNSS slant times for all 4 DOGs computed using gps2rng
+% xtags        x values for computed slant times from acoustic signals
+% ytags        actual slant times recorded by C-DOGs (plot against xtags)
+%
 % EXAMPLE:
 %
 % dog2rng({'DOG1-camp.mat','DOG2-camp.mat','DOG3-camp.mat','DOG4-camp.mat'})
 %
 % Originally written by fjsimons-at-princeton.edu, 02/07/2022
-% Last modified by tschuh-at-princeton.edu, 07/26/2022
+% Last modified by tschuh-at-princeton.edu, 07/29/2022
 
+% To-do:
 % add offset locations (start and end points where NaNs creep in)
 % have this function call gps2syn/dwplot
 
 % if not 4 DOGS used in input, dont run code
-%if length(fname) != 4
-%    error('Must have exactly 4 sets of DOG data')
-%end
+if length(fname) ~= 4
+    error('Must have exactly 4 sets of DOG data')
+end
 
 % DOG 1-4 approx positions
 xyz=[1.977967 -5.073198 3.3101016; 1.9765409 -5.074798706 3.308558817; ...
@@ -93,6 +100,18 @@ for i=1:4
     delete(p(i,1))
     hold off
 
+    % save ntags to a common matrix
+    % probably need to make sure data are all the same length
+    % make data same length as st
+    if length(ntags) > length(st)
+        ntags=ntags(1:length(st),:);
+    elseif length(ntags) < length(st)
+        ntags(end+1:length(st),:)=NaN;
+    else
+        % ntags and st are same length so we don't need to do anything
+    end
+    xtags(:,i)=ntags(:,1); ytags(:,i)=ntags(:,2);
+
     % to normalize the ntags data and have each dataset "count" the same way
     % take the actual offset spot (ofxy1) and add the st offset used during plotting (stoff)
     % and then subtract the bit used to cut off the end of the original ntags (ofx2)
@@ -127,7 +146,6 @@ for i=1:4
     legs=legend(pl,'GNSS','Acoustic','FontSize',4,'Location','northeast');
     % get subplot positions for single ylabel workaround
     g(i,:)=get(ah(i),'position');
-    keyboard
 end
 
 % workaround to make a single ylabel on plot
@@ -143,3 +161,7 @@ keyboard
 
 % print pdf
 figdisp(sprintf('dog2rng-plot'),[],'',2,[],'epstopdf')
+
+% optional output
+varns={st,xtags,ytags};
+varargout=varns(1:nargout);

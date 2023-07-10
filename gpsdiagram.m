@@ -110,5 +110,11 @@ else
     error('Cannot compute configuration currently')
 end
 
+% Flub
+set(gca,'FontSize',14)
+set(gca,'XTick',[0 2 5 7]))
+
+keyboard
+
 % Print to PDF
 figdisp([],[],[],2,[],'epstopdf')

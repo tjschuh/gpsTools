@@ -66,7 +66,7 @@ tixl=datestr(d(1).t(ttix),'HH:MM:SS');
 if length(files)>1
   switch meth
    case 'ave'
-    % More or less one line version of mat2com.m
+    % More or less one line version of older MAT2COM.m
     dxyz=squeeze(nanmean(reshape(cat(1,d(:).xyz),size(d(1).xyz,1),length(d),3),2));
   end
 else

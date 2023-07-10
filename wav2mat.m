@@ -163,7 +163,7 @@ for file = firstfile%:lastfile
     axes(ah(6))
     xlabel('time [s]')
     set(ttl,'FontWeight','normal','FontSize',6)
-    %delete(ttl)
+    delete(ttl)
     
     moveh(ah(1:3),.03)
     

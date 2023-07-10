@@ -1,5 +1,5 @@
-function varargout=gps2rng(files,meth,xyz,v)
-% [st,dxyz,sr,xyz,v]=GPS2RNG(files,meth,xyz,v)
+function varargout=gps2rng(files,meth,xyz,v,depth)
+% [st,dxyz,sr,xyz,v]=GPS2RNG(files,meth,xyz,v,depth)
 %
 % Given Precise Point Position time series of four different units, compute
 % a new average ship position time series from the four units and then
@@ -9,9 +9,10 @@ function varargout=gps2rng(files,meth,xyz,v)
 %
 % files        cell with MAT-filename strings containing data structures
 %              of which the field 'xyz' will be used, in com coordinates
-% meth         averaging method, 'ave'
-% xyz          1x3 matrix with nominal coordinates of the target, in com
-% v            sound speed [m]
+% meth         averaging method (default: 'ave')
+% xyz          1x3 matrix with nominal coordinates of the target, in com, at the ocean surface
+% v            sound speed [m/s] (default: 1500)
+% depth        ocean depth [m] (default: 5225))
 %
 % OUTPUT:
 %
@@ -29,8 +30,8 @@ function varargout=gps2rng(files,meth,xyz,v)
 % [st,dxyz,sr,xyzg,vg]=gps2rng({'Unit1-camp.mat','Unit2-camp.mat','Unit3-camp.mat','Unit4-camp.mat'},[],[2e6 -4.5e6 3e6]);
 %
 % Originally written by tschuh-at-princeton.edu, 11/24/2021
-% Last modified by tschuh-at-princeton.edu 03/01/2022
 % Last modified by fjsimons-at-princeton.edu 02/10/2022
+% Last modified by tschuh-at-princeton.edu 07/12/2022
 
 % need this file: IFILES/TOPOGRAPHY/EARTH/GEBCO/GEBCO2014/GEBCO_2014_1D.nc
 % if you dont have it: xyz=[1.977967 -5.073198 3.3101016]*1e6
@@ -74,37 +75,29 @@ else
   dxyz=d.xyz;
 end
 
-% Default beacon location is empty
-defval('xyz',[])
-% If empty, use either gps2dep or gps2guess to get a location
-if isempty(xyz)
-    % Determine a starting point from the middle section
-    imeth='down'; 
-    switch imeth
-     case 'down'
-      % Put in water depth read off the GPSTRAJECT map
-      depth=5225; 
-      % Just about
-      % lonlat=[291.3001853867659   31.4661752724632];
-      % z=gebco(lonlat(1)-360,lonlat(2));
-      % Handpicked by GINPUT on a plot of dxyz... for DOG1
-      [dogx,dogy,dogz]=gps2dep([1.977967 -5.073198 3.3101016]*1e6,depth);
-     case 'guess'
-      % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
-      defval('depth',gebco(68+42/60,-(31+27/60)));
-      % Rather put in a better water depth, so all units return uniform
-      % results, and read off the GPSTRAJECT map
-      depth=5225;
-      msex=[1 3]/4;
-      midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
-      [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
-    end
-    xyz=[dogx dogy dogz];
-% If nonempty, use it and define dogx, dogy, dogz as such
-else
-     dogx = xyz(1);
-     dogy = xyz(2);
-     dogz = xyz(3);
+% Default beacon location is DOG 1 drop off location from June 2020 cruise
+defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
+% Put in water depth read off the GPSTRAJECT map
+defval('depth',5225); 
+% Use either gps2dep or gps2guess to get a location
+% Determine a starting point from the middle section
+imeth='down'; 
+switch imeth
+ case 'down'
+  % Just about
+  % lonlat=[291.3001853867659   31.4661752724632];
+  % z=gebco(lonlat(1)-360,lonlat(2));
+  % Handpicked by GINPUT on a plot of dxyz... for DOG1
+  [dogx,dogy,dogz]=gps2dep(xyz,depth);
+ case 'guess'
+  % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
+  defval('depth',gebco(68+42/60,-(31+27/60)));
+  % Rather put in a better water depth, so all units return uniform
+  % results, and read off the GPSTRAJECT map
+  depth=5225;
+  msex=[1 3]/4;
+  midsex=[round(msex(1)*size(dxyz,1)):round(msex(2)*size(dxyz,1))];
+  [dogx,dogy,dogz]=gps2guess(dxyz(midsex,:),depth);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

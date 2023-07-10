@@ -7,7 +7,7 @@ function dwplot(d,data,thresh)
 %
 % INPUT:
 %
-% d        x,y,z,t ship positions
+% d        x,y,z,t ship positions (needed for plotting ship trajectory)
 % data     actual data containing x,y,z,dw,p-value,std
 % thresh   p-value threshold [default: 0.05]
 %

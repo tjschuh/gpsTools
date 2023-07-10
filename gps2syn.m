@@ -33,10 +33,11 @@ function varargout = gps2syn(d,tmax,xyz,xyzn,v,vn,plt)
 % end
 %
 % Originally written by tschuh-at-princeton.edu, 02/23/2022
-% Last modified by tschuh-at-princeton.edu, 06/06/2022
+% Last modified by tschuh-at-princeton.edu, 07/29/2022
 
 % To-do:
 % fix dwplot so it can be called here and work with 1 point at a time
+% turn highlighted section below into a separate function
 
 % default plotting is off
 defval('plt',0)
@@ -93,6 +94,10 @@ hsr = sqrt((d.x-xyzg(1)).^2 + (d.y-xyzg(2)).^2 + (d.z-xyzg(3)).^2);
 hst = hsr./vg;
 % This needs to be the same as GPS2FWD
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% this should probably be converted into its own function
+
 % difference between the slant times from C-DOG to ship 
 % and the slant times from perturbed C-DOG to perturbed ship
 differ = st-hst;
@@ -117,6 +122,8 @@ pthresh = 0.05;
 % save some results regardless of plt value
 stda=std(differ(rows)*tmulti{1,1});
 xyzdwp = [xyzn(1) xyzn(2) xyzn(3) dw pval stda];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % plotting only if plt = 1
 if plt == 1

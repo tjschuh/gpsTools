@@ -1,5 +1,5 @@
 function varargout = gps2fwd(d,tmax,xyz,v)
-% [st,xyz,v] = GPS2FW(d,tmax,xyz,v)
+% [st,xyz,v] = GPS2FWD(d,tmax,xyz,v)
 %
 % simple forward model
 %

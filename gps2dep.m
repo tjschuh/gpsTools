@@ -7,13 +7,13 @@ function [x0,y0,z0]=gps2depth(dxyz,depth)
 % INPUT:
 %
 % dxyz         The GPS points
-% depth        The nominal depth
+% depth        The nominal depth (positive)
 %
 % OUTPUT:
 %
 % x0,y0,z0     A sensible subsurface location guess
 %
-% Last modified by fjsimons-at-alum.mit.edu, 02/07/2022
+% Last modified by fjsimons-at-alum.mit.edu, 08/12/2023
 
 % Likely water depth from PrincetonSeafloorGeodesy-SURVEY3.pdf ORIGIN
 %defval('depth',gebco(68+42/60,-(31+27/60)));

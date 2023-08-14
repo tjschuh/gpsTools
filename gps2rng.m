@@ -75,11 +75,11 @@ else
   dxyz=d.xyz;
 end
 
-% Default beacon location is DOG 1 drop off location from June 2020 cruise
+% Default beacon location is DOG 1 drop off location from June 2020 cruise (surface)
 defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
 % Put in water depth read off the GPSTRAJECT map
 defval('depth',5225); 
-% Use either gps2dep or gps2guess to get a location
+% Use either gps2dep or gps2gus to get a location
 % Determine a starting point from the middle section
 imeth='down'; 
 switch imeth

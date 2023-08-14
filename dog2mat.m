@@ -2,6 +2,8 @@ function varargout=dog2mat(diro,fname,xver)
 % tags=DOG2MAT(diro,fname,xver)
 %
 % Reads in all the *.txt files with data from the geodesy board
+% Note that standard Unix/Linux "more", "cat", "tail" etc do not work on
+% these files but "vi" and "emacs" and MATLAB load handle them properly.
 %
 % INPUT
 %
@@ -13,7 +15,11 @@ function varargout=dog2mat(diro,fname,xver)
 %
 % tags        The tags in two-column format
 %
-% Last modified by fjsimons-at-alum.mit.edu, 07/07/2022
+% SEE ALSO:
+%
+% DOG2RNG which performs the unwrapping.
+%
+% Last modified by fjsimons-at-alum.mit.edu, 08/14/2023
 
 % Where data are being kep
 defval('diro','/data1/seafloorgeodesy/GeodesyBoard/DOG1/camp/txt')

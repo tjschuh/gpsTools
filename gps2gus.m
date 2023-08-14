@@ -25,6 +25,7 @@ x=dxyz(1:sint:end,1);
 y=dxyz(1:sint:end,2);
 z=dxyz(1:sint:end,3);
 
+% REPLACE THIS WITH GPS2DEP
 % All the subsampled GPS points in spherical coordinates
 [AZ,EL,r]=cart2sph(x,y,z);
 % All possible xyz points for every surface point except at depth

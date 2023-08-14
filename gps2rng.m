@@ -76,6 +76,7 @@ else
 end
 
 % Default beacon location is DOG 1 drop off location from June 2020 cruise (surface)
+% Remember ECEF2LL.M or /opt/Septentrio/RxTools/bin/posconv
 defval('xyz',[1.977967 -5.073198 3.3101016]*1e6)
 % Put in water depth read off the GPSTRAJECT map
 defval('depth',5225); 

@@ -29,7 +29,7 @@ if length(fname) ~= 4
     error('Must have exactly 4 sets of DOG data')
 end
 
-% DOG 1-4 approx positions
+% DOG 1-4 approx SURFACE positions 
 xyz=[1.977967 -5.073198 3.3101016; 1.9765409 -5.074798706 3.308558817; ...
      1.980083296 -5.073417583 3.308558817; 1.978732384 -5.075186123 3.30666684].*1e6;
 % ofx1=how much to cut off at the beginning of the data before retimei is used
